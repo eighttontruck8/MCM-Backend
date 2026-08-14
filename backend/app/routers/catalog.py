@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.errors import DomainError
+from app.mappers import to_customer, to_product, to_store
+from app.models import Customer, Inventory, Product, Store
+from app.schemas import CustomerResponse, ProductListResponse, ProductResponse, StoreResponse
+
+
+router = APIRouter(prefix="/api/v1", tags=["catalog"])
+
+
+@router.get("/customers/{customer_id}", response_model=CustomerResponse)
+def get_customer(customer_id: str, db: Session = Depends(get_db)) -> CustomerResponse:
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
+    return to_customer(customer)
+
+
+@router.get("/stores/{store_id}", response_model=StoreResponse)
+def get_store(store_id: str, db: Session = Depends(get_db)) -> StoreResponse:
+    store = db.get(Store, store_id)
+    if store is None or not store.is_active:
+        raise DomainError(404, "STORE_NOT_FOUND", "매장을 찾을 수 없습니다.")
+    return to_store(store)
+
+
+@router.get("/products", response_model=ProductListResponse)
+def list_products(
+    store_id: str | None = None,
+    in_stock: bool | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> ProductListResponse:
+    if store_id:
+        statement = select(Product, Inventory).outerjoin(
+            Inventory,
+            (Inventory.product_id == Product.id) & (Inventory.store_id == store_id),
+        ).where(Product.is_active.is_(True))
+        if in_stock is True:
+            statement = statement.where(Inventory.quantity > 0)
+        elif in_stock is False:
+            statement = statement.where((Inventory.quantity <= 0) | (Inventory.quantity.is_(None)))
+        items = [to_product(product, inventory) for product, inventory in db.execute(statement).all()]
+    else:
+        products = db.scalars(select(Product).where(Product.is_active.is_(True))).all()
+        items = [to_product(product) for product in products]
+    return ProductListResponse(items=items)
+
+
+@router.get("/products/{product_id}", response_model=ProductResponse)
+def get_product(
+    product_id: str,
+    store_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> ProductResponse:
+    product = db.get(Product, product_id)
+    if product is None or not product.is_active:
+        raise DomainError(404, "PRODUCT_NOT_FOUND", "상품을 찾을 수 없습니다.")
+    inventory = db.get(Inventory, (store_id, product_id)) if store_id else None
+    return to_product(product, inventory)

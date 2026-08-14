@@ -1,0 +1,208 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Annotated
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.dependencies import current_customer_id
+from app.errors import DomainError
+from app.mappers import to_store
+from app.models import Checkin, Consent, Customer, NfcTag, Store
+from app.schemas import (
+    CheckinCreateRequest,
+    CheckinCreateResponse,
+    CheckinResponse,
+    CheckinStatus,
+    MessageResponse,
+    ServiceRequestCreate,
+    ServiceRequestResponse,
+    ShoppingMode,
+    ShoppingModeRequest,
+    ShoppingModeResponse,
+)
+
+
+router = APIRouter(prefix="/api/v1/check-ins", tags=["check-ins"])
+CustomerId = Annotated[str, Depends(current_customer_id)]
+DbSession = Annotated[Session, Depends(get_db)]
+ACTIVE_STATUSES = {
+    CheckinStatus.CHECKED_IN.value,
+    CheckinStatus.SELF_SHOPPING.value,
+    CheckinStatus.WAITING_FOR_STAFF.value,
+}
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
+    checkin = db.get(Checkin, checkin_id)
+    if checkin is None:
+        raise DomainError(404, "CHECKIN_NOT_FOUND", "체크인을 찾을 수 없습니다.")
+    if checkin.customer_id != customer_id:
+        raise DomainError(403, "CHECKIN_ACCESS_DENIED", "이 체크인에 접근할 수 없습니다.")
+    return checkin
+
+
+def to_checkin_response(checkin: Checkin) -> CheckinResponse:
+    return CheckinResponse(
+        checkin_id=checkin.id,
+        customer_id=checkin.customer_id,
+        store_id=checkin.store_id,
+        shopping_mode=checkin.shopping_mode,
+        visit_purpose_code=checkin.visit_purpose_code,
+        visit_note=checkin.visit_note,
+        status=checkin.status,
+        checked_in_at=checkin.checked_in_at,
+        updated_at=checkin.updated_at,
+    )
+
+
+@router.post("", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_checkin(
+    body: CheckinCreateRequest,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> CheckinCreateResponse:
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
+
+    tag = db.get(NfcTag, body.tag_token)
+    if tag is None or not tag.is_active:
+        raise DomainError(400, "INVALID_NFC_TAG", "유효하지 않은 NFC 태그입니다.")
+    store = db.get(Store, tag.store_id)
+    if store is None or not store.is_active:
+        raise DomainError(400, "STORE_UNAVAILABLE", "현재 체크인할 수 없는 매장입니다.")
+
+    existing = db.scalar(
+        select(Checkin).where(
+            Checkin.customer_id == customer_id,
+            Checkin.store_id == store.id,
+            Checkin.status.in_(ACTIVE_STATUSES),
+        )
+    )
+    if existing is not None:
+        raise DomainError(
+            409,
+            "ACTIVE_CHECKIN_EXISTS",
+            "종료되지 않은 체크인이 이미 있습니다.",
+            {"checkin_id": existing.id},
+        )
+
+    now = utc_now()
+    checkin = Checkin(
+        id=str(uuid4()),
+        customer_id=customer.id,
+        store_id=store.id,
+        status=CheckinStatus.CHECKED_IN.value,
+        checked_in_at=now,
+        updated_at=now,
+    )
+    db.add(checkin)
+    db.commit()
+
+    return CheckinCreateResponse(
+        checkin_id=checkin.id,
+        store=to_store(store),
+        customer={"customer_id": customer.id, "display_name": customer.name},
+        status=checkin.status,
+        checked_in_at=checkin.checked_in_at,
+        purchase_count=customer.purchase_count,
+        interest_count=len(customer.recently_viewed_product_ids),
+    )
+
+
+@router.get("/{checkin_id}", response_model=CheckinResponse)
+def get_checkin(checkin_id: str, customer_id: CustomerId, db: DbSession) -> CheckinResponse:
+    return to_checkin_response(owned_checkin(checkin_id, customer_id, db))
+
+
+@router.patch("/{checkin_id}/shopping-mode", response_model=ShoppingModeResponse)
+def set_shopping_mode(
+    checkin_id: str,
+    body: ShoppingModeRequest,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> ShoppingModeResponse:
+    checkin = owned_checkin(checkin_id, customer_id, db)
+    if checkin.status != CheckinStatus.CHECKED_IN.value:
+        raise DomainError(409, "CHECKIN_STATE_CONFLICT", "현재 상태에서는 쇼핑 방식을 바꿀 수 없습니다.")
+
+    checkin.shopping_mode = body.shopping_mode.value
+    if body.shopping_mode is ShoppingMode.PRIVATE:
+        checkin.status = CheckinStatus.SELF_SHOPPING.value
+        next_action = "VIEW_LOOKBOOK"
+    else:
+        next_action = "SUBMIT_CONSENT_AND_PURPOSE"
+    checkin.updated_at = utc_now()
+    db.commit()
+
+    return ShoppingModeResponse(
+        checkin_id=checkin.id,
+        shopping_mode=checkin.shopping_mode,
+        status=checkin.status,
+        next_action=next_action,
+    )
+
+
+@router.post("/{checkin_id}/service-request", response_model=ServiceRequestResponse, status_code=status.HTTP_202_ACCEPTED)
+def create_service_request(
+    checkin_id: str,
+    body: ServiceRequestCreate,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> ServiceRequestResponse:
+    checkin = owned_checkin(checkin_id, customer_id, db)
+    if checkin.shopping_mode != ShoppingMode.STAFF_ASSISTED.value:
+        raise DomainError(409, "CHECKIN_STATE_CONFLICT", "직원 응대 방식을 먼저 선택해야 합니다.")
+    if checkin.status != CheckinStatus.CHECKED_IN.value:
+        raise DomainError(409, "CHECKIN_STATE_CONFLICT", "현재 상태에서는 직원 요청을 만들 수 없습니다.")
+    if not body.consent.agreed:
+        raise DomainError(403, "PROFILE_SHARE_CONSENT_REQUIRED", "정보 공유 동의가 필요합니다.")
+
+    now = utc_now()
+    db.add(
+        Consent(
+            id=str(uuid4()),
+            checkin_id=checkin.id,
+            customer_id=customer_id,
+            policy_version=body.consent.policy_version,
+            scopes=body.consent.scopes,
+            agreed_at=now,
+        )
+    )
+    checkin.visit_purpose_code = body.visit_purpose.code.value
+    checkin.visit_note = body.visit_purpose.note
+    checkin.status = CheckinStatus.WAITING_FOR_STAFF.value
+    checkin.updated_at = now
+    db.commit()
+
+    return ServiceRequestResponse(
+        checkin_id=checkin.id,
+        status=checkin.status,
+        ai_guide_status="NOT_STARTED",
+        estimated_wait_minutes=3,
+    )
+
+
+@router.post("/{checkin_id}/cancel", response_model=MessageResponse)
+def cancel_checkin(
+    checkin_id: str,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> MessageResponse:
+    checkin = owned_checkin(checkin_id, customer_id, db)
+    if checkin.status not in ACTIVE_STATUSES:
+        raise DomainError(409, "CHECKIN_STATE_CONFLICT", "이미 종료된 체크인입니다.")
+    checkin.status = CheckinStatus.CANCELLED.value
+    checkin.updated_at = utc_now()
+    checkin.completed_at = checkin.updated_at
+    db.commit()
+    return MessageResponse(message="체크인이 취소되었습니다.")

@@ -1,0 +1,1 @@
+"""M-Journey backend application."""
