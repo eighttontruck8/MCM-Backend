@@ -19,6 +19,8 @@ class CheckinStatus(StrEnum):
     CHECKED_IN = "CHECKED_IN"
     SELF_SHOPPING = "SELF_SHOPPING"
     WAITING_FOR_STAFF = "WAITING_FOR_STAFF"
+    ASSIGNED = "ASSIGNED"
+    SERVING = "SERVING"
     CANCELLED = "CANCELLED"
     COMPLETED = "COMPLETED"
 
@@ -157,6 +159,52 @@ class ServiceRequestResponse(ApiModel):
     estimated_wait_minutes: int
 
 
+class StaffSummaryResponse(ApiModel):
+    staff_id: str
+    name: str
+    title: str
+    experience_years: int
+
+
+class StaffAssignmentResponse(ApiModel):
+    checkin_id: str
+    status: CheckinStatus
+    staff: StaffSummaryResponse
+    assigned_at: datetime
+
+
+class StaffVisitResponse(ApiModel):
+    checkin_id: str
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_purpose: VisitPurposeCode
+    waiting_since: datetime
+    ai_guide_status: str
+
+
+class StaffVisitListResponse(ApiModel):
+    items: list[StaffVisitResponse]
+    next_cursor: str | None = None
+
+
+class StaffCustomerResponse(ApiModel):
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_count: int
+    visit_purpose: VisitPurposeCode
+    preferred_colors: list[str] | None = None
+    preferred_style: str | None = None
+    recently_viewed_product_ids: list[str] | None = None
+    liked_product_ids: list[str] | None = None
+    purchase_count: int | None = None
+
+
+class StaffStatusRequest(ApiModel):
+    status: CheckinStatus
+
+
 class CheckinResponse(ApiModel):
     checkin_id: str
     customer_id: str
@@ -167,6 +215,7 @@ class CheckinResponse(ApiModel):
     status: CheckinStatus
     checked_in_at: datetime
     updated_at: datetime
+    assigned_staff: StaffSummaryResponse | None = None
 
 
 class MessageResponse(ApiModel):

@@ -31,7 +31,7 @@ uv run python -m pytest
 Seed 계정:
 
 - 고객: `customer@example.com`, `customer2@example.com`
-- 직원: `staff@example.com` (`S001` 소속)
+- 직원: `staff@example.com`, `staff2@example.com` (`S001` 소속)
 - 비밀번호: `M_JOURNEY_DEMO_PASSWORD` 환경변수에 설정한 값
 
 로그인:
@@ -56,3 +56,14 @@ Authorization: Bearer <access_token>
 ```
 
 토큰 갱신과 로그아웃은 각각 `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`에 `refresh_token`을 전달한다. 갱신 시 기존 Refresh Token은 즉시 폐기된다.
+
+## 직원 방문 처리
+
+직원 Access Token으로 다음 API를 사용할 수 있다.
+
+- `GET /api/v1/staff/stores/S001/visits?status=WAITING_FOR_STAFF`: 대기열 동기화
+- `POST /api/v1/staff/check-ins/{checkin_id}/claim`: 방문 수락
+- `PATCH /api/v1/staff/check-ins/{checkin_id}/status`: `SERVING`, `COMPLETED` 상태 변경
+- `GET /api/v1/staff/customers/{customer_id}`: 활성 방문과 동의 범위 내 마스킹 프로필 조회
+
+직원은 JWT에서 확인된 소속 매장의 방문만 조회·수락할 수 있다. 두 직원이 같은 방문을 수락하면 한 요청만 성공한다.

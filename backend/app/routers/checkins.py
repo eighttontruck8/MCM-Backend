@@ -12,7 +12,7 @@ from app.database import get_db
 from app.dependencies import current_customer_id
 from app.errors import DomainError
 from app.mappers import to_store
-from app.models import Checkin, Consent, Customer, NfcTag, Store
+from app.models import Checkin, Consent, Customer, NfcTag, Staff, StaffAssignment, Store, User
 from app.schemas import (
     CheckinCreateRequest,
     CheckinCreateResponse,
@@ -24,6 +24,7 @@ from app.schemas import (
     ShoppingMode,
     ShoppingModeRequest,
     ShoppingModeResponse,
+    StaffSummaryResponse,
 )
 
 
@@ -34,6 +35,8 @@ ACTIVE_STATUSES = {
     CheckinStatus.CHECKED_IN.value,
     CheckinStatus.SELF_SHOPPING.value,
     CheckinStatus.WAITING_FOR_STAFF.value,
+    CheckinStatus.ASSIGNED.value,
+    CheckinStatus.SERVING.value,
 }
 
 
@@ -50,7 +53,19 @@ def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
     return checkin
 
 
-def to_checkin_response(checkin: Checkin) -> CheckinResponse:
+def to_checkin_response(checkin: Checkin, db: Session) -> CheckinResponse:
+    assigned_staff = None
+    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    if assignment is not None:
+        staff = db.get(Staff, assignment.staff_id)
+        user = db.get(User, assignment.staff_id)
+        if staff is not None and user is not None:
+            assigned_staff = StaffSummaryResponse(
+                staff_id=staff.id,
+                name=user.display_name,
+                title=staff.title,
+                experience_years=staff.experience_years,
+            )
     return CheckinResponse(
         checkin_id=checkin.id,
         customer_id=checkin.customer_id,
@@ -61,6 +76,7 @@ def to_checkin_response(checkin: Checkin) -> CheckinResponse:
         status=checkin.status,
         checked_in_at=checkin.checked_in_at,
         updated_at=checkin.updated_at,
+        assigned_staff=assigned_staff,
     )
 
 
@@ -121,7 +137,7 @@ def create_checkin(
 
 @router.get("/{checkin_id}", response_model=CheckinResponse)
 def get_checkin(checkin_id: str, customer_id: CustomerId, db: DbSession) -> CheckinResponse:
-    return to_checkin_response(owned_checkin(checkin_id, customer_id, db))
+    return to_checkin_response(owned_checkin(checkin_id, customer_id, db), db)
 
 
 @router.patch("/{checkin_id}/shopping-mode", response_model=ShoppingModeResponse)
@@ -204,5 +220,8 @@ def cancel_checkin(
     checkin.status = CheckinStatus.CANCELLED.value
     checkin.updated_at = utc_now()
     checkin.completed_at = checkin.updated_at
+    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    if assignment is not None:
+        assignment.ended_at = checkin.updated_at
     db.commit()
     return MessageResponse(message="체크인이 취소되었습니다.")

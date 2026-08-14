@@ -78,15 +78,20 @@ def seed_database(session: Session, demo_password: str | None = None) -> None:
                 )
             )
 
-    if demo_password and not session.scalar(select(func.count()).select_from(User)):
-        session.add_all(
-            [
-                User(id="C001", email="customer@example.com", password_hash=hash_password(demo_password), role=UserRole.CUSTOMER.value, display_name="김서연", created_at=now, updated_at=now),
-                User(id="C002", email="customer2@example.com", password_hash=hash_password(demo_password), role=UserRole.CUSTOMER.value, display_name="이지훈", created_at=now, updated_at=now),
-                User(id="ST001", email="staff@example.com", password_hash=hash_password(demo_password), role=UserRole.STAFF.value, display_name="박민준", created_at=now, updated_at=now),
-            ]
-        )
+    if demo_password:
+        seed_users = [
+            ("C001", "customer@example.com", UserRole.CUSTOMER, "김서연"),
+            ("C002", "customer2@example.com", UserRole.CUSTOMER, "이지훈"),
+            ("ST001", "staff@example.com", UserRole.STAFF, "박민준"),
+            ("ST002", "staff2@example.com", UserRole.STAFF, "최유진"),
+        ]
+        for user_id, email, role, display_name in seed_users:
+            if session.get(User, user_id) is None:
+                session.add(User(id=user_id, email=email, password_hash=hash_password(demo_password), role=role.value, display_name=display_name, created_at=now, updated_at=now))
         session.flush()
-        session.add(Staff(id="ST001", store_id="S001", title="Client Advisor"))
+        if session.get(Staff, "ST001") is None:
+            session.add(Staff(id="ST001", store_id="S001", title="Client Advisor", experience_years=4))
+        if session.get(Staff, "ST002") is None:
+            session.add(Staff(id="ST002", store_id="S001", title="Senior Client Advisor", experience_years=6))
 
     session.commit()

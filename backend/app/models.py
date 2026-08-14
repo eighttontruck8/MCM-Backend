@@ -42,6 +42,7 @@ class Staff(Base):
     id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
     title: Mapped[str] = mapped_column(String(80))
+    experience_years: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class RefreshToken(Base):
@@ -119,3 +120,13 @@ class Consent(Base):
     policy_version: Mapped[str] = mapped_column(String(80))
     scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
     agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class StaffAssignment(Base):
+    __tablename__ = "staff_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    checkin_id: Mapped[str] = mapped_column(ForeignKey("checkins.id"), unique=True, index=True)
+    staff_id: Mapped[str] = mapped_column(ForeignKey("staff.id"), index=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

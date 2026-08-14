@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from app.config import load_settings
 from app.database import Database
 from app.errors import DomainError
-from app.routers import auth, catalog, checkins, health
+from app.routers import auth, catalog, checkins, health, staff
 from app.seed import seed_database
 
 
@@ -85,6 +85,7 @@ def create_app(database_url: str | None = None, *, jwt_secret: str | None = None
     application.include_router(auth.router)
     application.include_router(catalog.router)
     application.include_router(checkins.router)
+    application.include_router(staff.router)
     return application
 
 
