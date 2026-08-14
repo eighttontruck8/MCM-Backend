@@ -168,6 +168,7 @@ def get_customer(customer_id: str, authenticated: CurrentStaff, db: DbSession) -
             Checkin.customer_id == customer_id,
             Checkin.store_id == authenticated.store_id,
             Checkin.status.in_(STAFF_ACTIVE_STATUSES),
+            Consent.revoked_at.is_(None),
         )
     ).first()
     if row is None:

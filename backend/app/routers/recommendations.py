@@ -288,7 +288,7 @@ def get_staff_guide(checkin_id: str, request: Request, authenticated: CurrentSta
         raise DomainError(403, "STAFF_GUIDE_ACCESS_DENIED", "활성 방문에서만 가이드를 조회할 수 있습니다.")
     consent = db.scalar(select(Consent).where(Consent.checkin_id == checkin.id))
     assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
-    if consent is None:
+    if consent is None or consent.revoked_at is not None:
         raise DomainError(403, "PROFILE_SHARE_CONSENT_REQUIRED", "정보 공유 동의가 필요합니다.")
     if assignment is None or assignment.staff_id != authenticated.id:
         raise DomainError(403, "ASSIGNED_STAFF_REQUIRED", "배정된 직원만 상세 가이드를 조회할 수 있습니다.")

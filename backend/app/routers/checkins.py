@@ -12,12 +12,13 @@ from app.database import get_db
 from app.dependencies import current_customer_id
 from app.errors import DomainError
 from app.mappers import to_store
-from app.models import Checkin, Consent, Customer, NfcTag, Staff, StaffAssignment, Store, User
+from app.models import Checkin, Consent, Customer, NfcTag, Recommendation, Staff, StaffAssignment, Store, User
 from app.schemas import (
     CheckinCreateRequest,
     CheckinCreateResponse,
     CheckinResponse,
     CheckinStatus,
+    ConsentRevocationResponse,
     MessageResponse,
     ServiceRequestCreate,
     ServiceRequestResponse,
@@ -44,6 +45,10 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
 def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
     checkin = db.get(Checkin, checkin_id)
     if checkin is None:
@@ -55,7 +60,12 @@ def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
 
 def to_checkin_response(checkin: Checkin, db: Session) -> CheckinResponse:
     assigned_staff = None
-    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    assignment = db.scalar(
+        select(StaffAssignment).where(
+            StaffAssignment.checkin_id == checkin.id,
+            StaffAssignment.ended_at.is_(None),
+        )
+    )
     if assignment is not None:
         staff = db.get(Staff, assignment.staff_id)
         user = db.get(User, assignment.staff_id)
@@ -222,6 +232,70 @@ def create_service_request(
         ai_guide_status="NOT_STARTED",
         estimated_wait_minutes=3,
     )
+
+
+@router.post("/{checkin_id}/consent/revoke", response_model=ConsentRevocationResponse)
+def revoke_consent(
+    checkin_id: str,
+    request: Request,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> ConsentRevocationResponse:
+    checkin = owned_checkin(checkin_id, customer_id, db)
+    consent = db.scalar(select(Consent).where(Consent.checkin_id == checkin.id))
+    if consent is None:
+        raise DomainError(404, "CONSENT_NOT_FOUND", "철회할 정보 공유 동의를 찾을 수 없습니다.")
+    if consent.revoked_at is not None:
+        return ConsentRevocationResponse(
+            checkin_id=checkin.id,
+            consent_status="REVOKED",
+            shopping_mode=checkin.shopping_mode,
+            checkin_status=checkin.status,
+            revoked_at=as_utc(consent.revoked_at),
+        )
+
+    now = utc_now()
+    consent.revoked_at = now
+    checkin.visit_note = None
+    if checkin.status in {
+        CheckinStatus.WAITING_FOR_STAFF.value,
+        CheckinStatus.ASSIGNED.value,
+        CheckinStatus.SERVING.value,
+    }:
+        checkin.shopping_mode = ShoppingMode.PRIVATE.value
+        checkin.status = CheckinStatus.SELF_SHOPPING.value
+        checkin.updated_at = now
+
+    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    if assignment is not None and assignment.ended_at is None:
+        assignment.ended_at = now
+
+    recommendations = db.scalars(
+        select(Recommendation).where(
+            Recommendation.checkin_id == checkin.id,
+            Recommendation.type == "STAFF_GUIDE",
+        )
+    ).all()
+    for recommendation in recommendations:
+        recommendation.status = "REVOKED"
+        recommendation.output = None
+        recommendation.error_code = "CONSENT_REVOKED"
+        recommendation.updated_at = now
+    db.commit()
+
+    response = ConsentRevocationResponse(
+        checkin_id=checkin.id,
+        consent_status="REVOKED",
+        shopping_mode=checkin.shopping_mode,
+        checkin_status=checkin.status,
+        revoked_at=now,
+    )
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+        "CONSENT_REVOKED",
+        response.model_dump(mode="json"),
+    )
+    return response
 
 
 @router.post("/{checkin_id}/cancel", response_model=MessageResponse)

@@ -7,8 +7,10 @@ import time
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
+from sqlalchemy import select
 
 from app.main import create_app
+from app.models import Consent, Recommendation, StaffAssignment
 
 TEST_PASSWORD = "test-password-1234"
 
@@ -551,3 +553,71 @@ def test_purchase_history_seed_and_customer_role_access() -> None:
         denied = client.get("/api/v1/customers/me/purchases", headers=staff_headers)
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "CUSTOMER_ROLE_REQUIRED"
+
+
+def test_consent_revocation_immediately_blocks_staff_and_removes_sensitive_output() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_headers = {"Authorization": f"Bearer {staff_tokens['access_token']}"}
+        checkin_id = create_staff_request(client, customer_headers)
+        assert client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers).status_code == 200
+        assert client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers).status_code == 200
+
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            revoked = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+            assert revoked.status_code == 200
+            assert revoked.json()["consent_status"] == "REVOKED"
+            assert revoked.json()["shopping_mode"] == "PRIVATE"
+            assert revoked.json()["checkin_status"] == "SELF_SHOPPING"
+            assert staff_ws.receive_json()["event"] == "CONSENT_REVOKED"
+            assert customer_ws.receive_json()["event"] == "CONSENT_REVOKED"
+
+        repeated = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+        assert repeated.status_code == 200
+        assert repeated.json()["revoked_at"] == revoked.json()["revoked_at"]
+
+        staff_profile = client.get("/api/v1/staff/customers/C001", headers=staff_headers)
+        assert staff_profile.status_code == 403
+        guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert guide.status_code == 403
+        assert guide.json()["error"]["code"] == "STAFF_GUIDE_ACCESS_DENIED"
+
+        customer_view = client.get(f"/api/v1/check-ins/{checkin_id}", headers=customer_headers)
+        assert customer_view.json()["visit_note"] is None
+        assert customer_view.json()["status"] == "SELF_SHOPPING"
+        assert customer_view.json()["assigned_staff"] is None
+
+        with client.app.state.database.session_factory() as db:
+            consent = db.scalar(select(Consent).where(Consent.checkin_id == checkin_id))
+            assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin_id))
+            recommendation = db.scalar(
+                select(Recommendation).where(
+                    Recommendation.checkin_id == checkin_id,
+                    Recommendation.type == "STAFF_GUIDE",
+                )
+            )
+            assert consent.revoked_at is not None
+            assert assignment.ended_at is not None
+            assert recommendation.status == "REVOKED"
+            assert recommendation.output is None
+            assert recommendation.error_code == "CONSENT_REVOKED"
+
+
+def test_consent_revocation_requires_owner_and_existing_consent() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        missing = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+        assert missing.status_code == 404
+        assert missing.json()["error"]["code"] == "CONSENT_NOT_FOUND"
+
+        denied = client.post(
+            f"/api/v1/check-ins/{checkin_id}/consent/revoke",
+            headers=headers(client, "customer2@example.com"),
+        )
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "CHECKIN_ACCESS_DENIED"

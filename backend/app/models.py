@@ -120,6 +120,7 @@ class Consent(Base):
     policy_version: Mapped[str] = mapped_column(String(80))
     scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
     agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class StaffAssignment(Base):

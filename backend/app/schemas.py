@@ -174,6 +174,14 @@ class ServiceRequestResponse(ApiModel):
     estimated_wait_minutes: int
 
 
+class ConsentRevocationResponse(ApiModel):
+    checkin_id: str
+    consent_status: str
+    shopping_mode: ShoppingMode
+    checkin_status: CheckinStatus
+    revoked_at: datetime
+
+
 class StaffSummaryResponse(ApiModel):
     staff_id: str
     name: str
