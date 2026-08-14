@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, Inventory, NfcTag, Product, Staff, Store, User
+from app.models import Customer, CustomerWishlist, Inventory, NfcTag, Product, PurchaseHistory, Staff, Store, User
 from app.schemas import UserRole
 from app.security import hash_password
 
@@ -93,5 +94,30 @@ def seed_database(session: Session, demo_password: str | None = None) -> None:
             session.add(Staff(id="ST001", store_id="S001", title="Client Advisor", experience_years=4))
         if session.get(Staff, "ST002") is None:
             session.add(Staff(id="ST002", store_id="S001", title="Senior Client Advisor", experience_years=6))
+
+    wishlist_seed = {"C001": ["P001"], "C002": ["P003"]}
+    for customer_id, product_ids in wishlist_seed.items():
+        for product_id in product_ids:
+            if session.get(CustomerWishlist, (customer_id, product_id)) is None:
+                session.add(CustomerWishlist(customer_id=customer_id, product_id=product_id, created_at=now))
+
+    if not session.scalar(select(func.count()).select_from(PurchaseHistory)):
+        purchase_seed = [
+            ("C001", "P004", 120),
+            ("C001", "P001", 45),
+            ("C002", "P002", 30),
+        ]
+        for customer_id, product_id, days_ago in purchase_seed:
+            product = session.get(Product, product_id)
+            session.add(
+                PurchaseHistory(
+                    id=str(uuid4()),
+                    customer_id=customer_id,
+                    product_id=product_id,
+                    category_snapshot=product.category,
+                    price_snapshot=product.price,
+                    purchased_at=now - timedelta(days=days_ago),
+                )
+            )
 
     session.commit()

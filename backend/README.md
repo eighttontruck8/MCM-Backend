@@ -96,3 +96,15 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 모든 이벤트는 `event`, `event_id`, `occurred_at`, `data` 필드를 가진다. WebSocket은 알림 수단이며 데이터 원본은 REST API와 DB다. 재연결한 직원 화면은 방문 대기열 REST API로 전체 상태를 다시 동기화해야 한다.
 
 현재 `InMemoryEventBroker`는 단일 서버 시연용이다. 프론트·외부 AI 연동 방식은 이벤트 계약을 유지하고, 다중 서버 배포 시 브로커 구현만 Redis Pub/Sub 등으로 교체한다.
+
+## 고객 부가 기능
+
+고객 Access Token으로 다음 API를 사용할 수 있다.
+
+- `GET /api/v1/customers/me/recommendations`: 저장된 AI 추천 중 현재 매장 재고가 있는 상품
+- `GET /api/v1/customers/me/wishlist`: 찜 목록
+- `POST /api/v1/customers/me/wishlist/{product_id}`: 찜 추가
+- `DELETE /api/v1/customers/me/wishlist/{product_id}`: 찜 삭제
+- `GET /api/v1/customers/me/purchases`: 구매 당시 가격·카테고리 기준 구매 이력
+
+목록 응답은 공통 계약인 `{ "items": [...], "next_cursor": null }` 형식을 사용한다. 찜 추가는 같은 상품을 반복 요청해도 중복 레코드를 만들지 않는다.

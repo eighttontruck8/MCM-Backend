@@ -13,7 +13,7 @@ from app.ai import AIProvider, AIService, RuleBasedAIProvider
 from app.database import Database
 from app.errors import DomainError
 from app.events import EventBroker, InMemoryEventBroker
-from app.routers import auth, catalog, checkins, health, recommendations, staff, websockets
+from app.routers import auth, catalog, checkins, customer_features, health, recommendations, staff, websockets
 from app.seed import seed_database
 
 
@@ -101,6 +101,7 @@ def create_app(
     application.include_router(health.router)
     application.include_router(auth.router)
     application.include_router(catalog.router)
+    application.include_router(customer_features.router)
     application.include_router(checkins.router)
     application.include_router(staff.router)
     application.include_router(recommendations.router)

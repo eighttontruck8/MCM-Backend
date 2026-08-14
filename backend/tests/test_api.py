@@ -492,3 +492,62 @@ def test_visit_cancelled_event_reaches_staff_and_customer() -> None:
             customer_event = customer_ws.receive_json()
             assert staff_event["event"] == customer_event["event"] == "VISIT_CANCELLED"
             assert customer_event["data"]["checkin_id"] == checkin_id
+
+
+def test_wishlist_add_is_idempotent_delete_and_customer_isolation() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        other_customer_headers = headers(client, "customer2@example.com")
+
+        initial = client.get("/api/v1/customers/me/wishlist", headers=customer_headers)
+        assert [item["product_id"] for item in initial.json()["items"]] == ["P001"]
+
+        first_add = client.post("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        second_add = client.post("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        assert first_add.status_code == second_add.status_code == 201
+        wishlist = client.get("/api/v1/customers/me/wishlist", headers=customer_headers)
+        assert [item["product_id"] for item in wishlist.json()["items"]].count("P002") == 1
+
+        profile = client.get("/api/v1/customers/me", headers=customer_headers)
+        assert "P002" in profile.json()["liked_product_ids"]
+        other_wishlist = client.get("/api/v1/customers/me/wishlist", headers=other_customer_headers)
+        assert "P002" not in [item["product_id"] for item in other_wishlist.json()["items"]]
+
+        removed = client.delete("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        assert removed.status_code == 200
+        assert client.delete("/api/v1/customers/me/wishlist/P002", headers=customer_headers).status_code == 404
+        profile = client.get("/api/v1/customers/me", headers=customer_headers)
+        assert "P002" not in profile.json()["liked_product_ids"]
+
+
+def test_saved_recommendations_only_return_current_in_stock_products() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        lookbook = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert lookbook.status_code == 200
+
+        recommendations = client.get("/api/v1/customers/me/recommendations", headers=customer_headers)
+        assert recommendations.status_code == 200
+        assert recommendations.json()["items"]
+        assert all(item["inventory"]["in_stock"] for item in recommendations.json()["items"])
+        assert "P003" not in [item["product_id"] for item in recommendations.json()["items"]]
+
+
+def test_purchase_history_seed_and_customer_role_access() -> None:
+    with make_client() as client:
+        customer_purchases = client.get("/api/v1/customers/me/purchases", headers=headers(client))
+        assert customer_purchases.status_code == 200
+        assert len(customer_purchases.json()["items"]) == 2
+        assert all(item["price"] > 0 and item["purchased_at"] for item in customer_purchases.json()["items"])
+
+        other_purchases = client.get(
+            "/api/v1/customers/me/purchases",
+            headers=headers(client, "customer2@example.com"),
+        )
+        assert len(other_purchases.json()["items"]) == 1
+
+        staff_headers = headers(client, "staff@example.com")
+        denied = client.get("/api/v1/customers/me/purchases", headers=staff_headers)
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "CUSTOMER_ROLE_REQUIRED"

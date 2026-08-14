@@ -111,6 +111,21 @@ class ProductListResponse(ApiModel):
     next_cursor: str | None = None
 
 
+class PurchaseResponse(ApiModel):
+    purchase_id: str
+    product_id: str
+    name: str
+    category: str
+    price: int
+    image_url: str
+    purchased_at: datetime
+
+
+class PurchaseListResponse(ApiModel):
+    items: list[PurchaseResponse]
+    next_cursor: str | None = None
+
+
 class CheckinCreateRequest(ApiModel):
     tag_token: str = Field(min_length=8, max_length=255)
 
