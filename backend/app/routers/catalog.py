@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import AuthenticatedUser, current_customer
 from app.errors import DomainError
 from app.mappers import to_customer, to_product, to_store
 from app.models import Customer, Inventory, Product, Store
@@ -14,8 +17,25 @@ from app.schemas import CustomerResponse, ProductListResponse, ProductResponse, 
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
 
 
+@router.get("/customers/me", response_model=CustomerResponse)
+def get_my_customer(
+    authenticated: Annotated[AuthenticatedUser, Depends(current_customer)],
+    db: Session = Depends(get_db),
+) -> CustomerResponse:
+    customer = db.get(Customer, authenticated.id)
+    if customer is None:
+        raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
+    return to_customer(customer)
+
+
 @router.get("/customers/{customer_id}", response_model=CustomerResponse)
-def get_customer(customer_id: str, db: Session = Depends(get_db)) -> CustomerResponse:
+def get_customer(
+    customer_id: str,
+    authenticated: Annotated[AuthenticatedUser, Depends(current_customer)],
+    db: Session = Depends(get_db),
+) -> CustomerResponse:
+    if customer_id != authenticated.id:
+        raise DomainError(403, "CUSTOMER_ACCESS_DENIED", "다른 고객 정보에 접근할 수 없습니다.")
     customer = db.get(Customer, customer_id)
     if customer is None:
         raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")

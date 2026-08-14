@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, Inventory, NfcTag, Product, Store
+from app.models import Customer, Inventory, NfcTag, Product, Staff, Store, User
+from app.schemas import UserRole
+from app.security import hash_password
 
 
 CUSTOMERS = [
@@ -45,37 +47,46 @@ PRODUCTS = [
 ]
 
 
-def seed_database(session: Session) -> None:
-    if session.scalar(select(func.count()).select_from(Customer)):
-        return
-
+def seed_database(session: Session, demo_password: str | None = None) -> None:
     now = datetime.now(timezone.utc)
-    store = Store(id="S001", name="MCM 서울 플래그십", timezone="Asia/Seoul")
-    session.add(store)
-    session.add(NfcTag(token="nfc-demo-seoul-001", store_id=store.id, is_active=True))
-    session.add_all(Customer(**customer) for customer in CUSTOMERS)
+    if not session.scalar(select(func.count()).select_from(Customer)):
+        store = Store(id="S001", name="MCM 서울 플래그십", timezone="Asia/Seoul")
+        session.add(store)
+        session.add(NfcTag(token="nfc-demo-seoul-001", store_id=store.id, is_active=True))
+        session.add_all(Customer(**customer) for customer in CUSTOMERS)
 
-    for product_id, name, line, category, colors, material, price, tags, quantity in PRODUCTS:
-        session.add(
-            Product(
-                id=product_id,
-                name=name,
-                line=line,
-                category=category,
-                colors=colors,
-                material=material,
-                price=price,
-                tags=tags,
-                image_url=f"/assets/products/{product_id.lower()}.jpg",
+        for product_id, name, line, category, colors, material, price, tags, quantity in PRODUCTS:
+            session.add(
+                Product(
+                    id=product_id,
+                    name=name,
+                    line=line,
+                    category=category,
+                    colors=colors,
+                    material=material,
+                    price=price,
+                    tags=tags,
+                    image_url=f"/assets/products/{product_id.lower()}.jpg",
+                )
             )
-        )
-        session.add(
-            Inventory(
-                store_id=store.id,
-                product_id=product_id,
-                quantity=quantity,
-                updated_at=now,
+            session.add(
+                Inventory(
+                    store_id=store.id,
+                    product_id=product_id,
+                    quantity=quantity,
+                    updated_at=now,
+                )
             )
+
+    if demo_password and not session.scalar(select(func.count()).select_from(User)):
+        session.add_all(
+            [
+                User(id="C001", email="customer@example.com", password_hash=hash_password(demo_password), role=UserRole.CUSTOMER.value, display_name="김서연", created_at=now, updated_at=now),
+                User(id="C002", email="customer2@example.com", password_hash=hash_password(demo_password), role=UserRole.CUSTOMER.value, display_name="이지훈", created_at=now, updated_at=now),
+                User(id="ST001", email="staff@example.com", password_hash=hash_password(demo_password), role=UserRole.STAFF.value, display_name="박민준", created_at=now, updated_at=now),
+            ]
         )
+        session.flush()
+        session.add(Staff(id="ST001", store_id="S001", title="Client Advisor"))
 
     session.commit()

@@ -32,6 +32,39 @@ class VisitPurposeCode(StrEnum):
     OTHER = "OTHER"
 
 
+class UserRole(StrEnum):
+    CUSTOMER = "CUSTOMER"
+    STAFF = "STAFF"
+
+
+class LoginRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=8, max_length=200)
+
+
+class RefreshRequest(ApiModel):
+    refresh_token: str = Field(min_length=20)
+
+
+class LogoutRequest(RefreshRequest):
+    pass
+
+
+class AuthUserResponse(ApiModel):
+    id: str
+    role: UserRole
+    display_name: str
+    store_id: str | None = None
+
+
+class TokenResponse(ApiModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    user: AuthUserResponse
+
+
 class CustomerResponse(ApiModel):
     customer_id: str
     name: str
