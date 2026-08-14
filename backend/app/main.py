@@ -11,11 +11,11 @@ from fastapi.responses import JSONResponse
 from app.config import load_settings
 from app.database import Database
 from app.errors import DomainError
-from app.routers import catalog, checkins, health
+from app.routers import auth, catalog, checkins, health
 from app.seed import seed_database
 
 
-def create_app(database_url: str | None = None) -> FastAPI:
+def create_app(database_url: str | None = None, *, jwt_secret: str | None = None, demo_password: str | None = None) -> FastAPI:
     settings = load_settings()
     database = Database(database_url or settings.database_url)
 
@@ -23,7 +23,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
     async def lifespan(_: FastAPI):
         database.create_schema()
         with database.session_factory() as session:
-            seed_database(session)
+            seed_database(session, demo_password if demo_password is not None else settings.demo_password)
         yield
         database.dispose()
 
@@ -34,6 +34,9 @@ def create_app(database_url: str | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     application.state.database = database
+    application.state.jwt_secret = jwt_secret or settings.jwt_secret
+    application.state.access_token_expire_minutes = settings.access_token_expire_minutes
+    application.state.refresh_token_expire_days = settings.refresh_token_expire_days
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
@@ -79,6 +82,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         )
 
     application.include_router(health.router)
+    application.include_router(auth.router)
     application.include_router(catalog.router)
     application.include_router(checkins.router)
     return application
