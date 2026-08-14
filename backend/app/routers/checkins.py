@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -172,6 +172,7 @@ def set_shopping_mode(
 def create_service_request(
     checkin_id: str,
     body: ServiceRequestCreate,
+    request: Request,
     customer_id: CustomerId,
     db: DbSession,
 ) -> ServiceRequestResponse:
@@ -200,6 +201,21 @@ def create_service_request(
     checkin.updated_at = now
     db.commit()
 
+    customer = db.get(Customer, customer_id)
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}"],
+        "VISIT_WAITING",
+        {
+            "checkin_id": checkin.id,
+            "customer_id": customer.id,
+            "masked_name": f"{customer.name[0]}{'*' * max(2, len(customer.name) - 1)}",
+            "membership": customer.membership,
+            "visit_purpose": checkin.visit_purpose_code,
+            "waiting_since": now,
+            "ai_guide_status": "NOT_STARTED",
+        },
+    )
+
     return ServiceRequestResponse(
         checkin_id=checkin.id,
         status=checkin.status,
@@ -211,6 +227,7 @@ def create_service_request(
 @router.post("/{checkin_id}/cancel", response_model=MessageResponse)
 def cancel_checkin(
     checkin_id: str,
+    request: Request,
     customer_id: CustomerId,
     db: DbSession,
 ) -> MessageResponse:
@@ -224,4 +241,9 @@ def cancel_checkin(
     if assignment is not None:
         assignment.ended_at = checkin.updated_at
     db.commit()
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+        "VISIT_CANCELLED",
+        {"checkin_id": checkin.id, "status": checkin.status},
+    )
     return MessageResponse(message="체크인이 취소되었습니다.")

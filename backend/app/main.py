@@ -9,13 +9,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import load_settings
+from app.ai import AIProvider, AIService, RuleBasedAIProvider
 from app.database import Database
 from app.errors import DomainError
-from app.routers import auth, catalog, checkins, health, staff
+from app.events import EventBroker, InMemoryEventBroker
+from app.routers import auth, catalog, checkins, health, recommendations, staff, websockets
 from app.seed import seed_database
 
 
-def create_app(database_url: str | None = None, *, jwt_secret: str | None = None, demo_password: str | None = None) -> FastAPI:
+def create_app(
+    database_url: str | None = None,
+    *,
+    jwt_secret: str | None = None,
+    demo_password: str | None = None,
+    ai_provider: AIProvider | None = None,
+    ai_timeout_seconds: float | None = None,
+    ai_max_retries: int | None = None,
+    event_broker: EventBroker | None = None,
+) -> FastAPI:
     settings = load_settings()
     database = Database(database_url or settings.database_url)
 
@@ -37,6 +48,12 @@ def create_app(database_url: str | None = None, *, jwt_secret: str | None = None
     application.state.jwt_secret = jwt_secret or settings.jwt_secret
     application.state.access_token_expire_minutes = settings.access_token_expire_minutes
     application.state.refresh_token_expire_days = settings.refresh_token_expire_days
+    application.state.ai_service = AIService(
+        ai_provider or RuleBasedAIProvider(),
+        timeout_seconds=ai_timeout_seconds if ai_timeout_seconds is not None else settings.ai_timeout_seconds,
+        max_retries=ai_max_retries if ai_max_retries is not None else settings.ai_max_retries,
+    )
+    application.state.event_broker = event_broker or InMemoryEventBroker()
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
@@ -86,6 +103,8 @@ def create_app(database_url: str | None = None, *, jwt_secret: str | None = None
     application.include_router(catalog.router)
     application.include_router(checkins.router)
     application.include_router(staff.router)
+    application.include_router(recommendations.router)
+    application.include_router(websockets.router)
     return application
 
 

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
@@ -85,7 +85,7 @@ def list_visits(
 
 
 @router.post("/check-ins/{checkin_id}/claim", response_model=StaffAssignmentResponse)
-def claim_checkin(checkin_id: str, authenticated: CurrentStaff, db: DbSession) -> StaffAssignmentResponse:
+def claim_checkin(checkin_id: str, request: Request, authenticated: CurrentStaff, db: DbSession) -> StaffAssignmentResponse:
     now = utc_now()
     result = db.execute(
         update(Checkin)
@@ -113,11 +113,18 @@ def claim_checkin(checkin_id: str, authenticated: CurrentStaff, db: DbSession) -
     if staff is None or user is None:
         raise DomainError(403, "STAFF_PROFILE_NOT_FOUND", "직원 정보를 찾을 수 없습니다.")
     db.commit()
-    return StaffAssignmentResponse(checkin_id=checkin_id, status=CheckinStatus.ASSIGNED, staff=staff_summary(staff, user), assigned_at=now)
+    response = StaffAssignmentResponse(checkin_id=checkin_id, status=CheckinStatus.ASSIGNED, staff=staff_summary(staff, user), assigned_at=now)
+    checkin = db.get(Checkin, checkin_id)
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+        "STAFF_ASSIGNED",
+        response.model_dump(mode="json"),
+    )
+    return response
 
 
 @router.patch("/check-ins/{checkin_id}/status", response_model=StaffAssignmentResponse)
-def update_visit_status(checkin_id: str, body: StaffStatusRequest, authenticated: CurrentStaff, db: DbSession) -> StaffAssignmentResponse:
+def update_visit_status(checkin_id: str, body: StaffStatusRequest, request: Request, authenticated: CurrentStaff, db: DbSession) -> StaffAssignmentResponse:
     assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin_id))
     checkin = db.get(Checkin, checkin_id)
     if checkin is None:
@@ -141,7 +148,14 @@ def update_visit_status(checkin_id: str, body: StaffStatusRequest, authenticated
     staff = db.get(Staff, authenticated.id)
     user = db.get(User, authenticated.id)
     db.commit()
-    return StaffAssignmentResponse(checkin_id=checkin.id, status=body.status, staff=staff_summary(staff, user), assigned_at=assignment.assigned_at)
+    response = StaffAssignmentResponse(checkin_id=checkin.id, status=body.status, staff=staff_summary(staff, user), assigned_at=assignment.assigned_at)
+    if body.status is CheckinStatus.COMPLETED:
+        request.app.state.event_broker.publish(
+            [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+            "VISIT_COMPLETED",
+            {"checkin_id": checkin.id, "status": checkin.status, "completed_at": checkin.completed_at},
+        )
+    return response
 
 
 @router.get("/customers/{customer_id}", response_model=StaffCustomerResponse, response_model_exclude_none=True)

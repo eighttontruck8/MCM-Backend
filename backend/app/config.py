@@ -13,6 +13,8 @@ class Settings:
     access_token_expire_minutes: int
     refresh_token_expire_days: int
     demo_password: str | None
+    ai_timeout_seconds: float
+    ai_max_retries: int
 
 
 def load_settings() -> Settings:
@@ -24,4 +26,6 @@ def load_settings() -> Settings:
         access_token_expire_minutes=int(os.getenv("M_JOURNEY_ACCESS_TOKEN_EXPIRE_MINUTES", "30")),
         refresh_token_expire_days=int(os.getenv("M_JOURNEY_REFRESH_TOKEN_EXPIRE_DAYS", "7")),
         demo_password=os.getenv("M_JOURNEY_DEMO_PASSWORD"),
+        ai_timeout_seconds=float(os.getenv("M_JOURNEY_AI_TIMEOUT_SECONDS", "10")),
+        ai_max_retries=int(os.getenv("M_JOURNEY_AI_MAX_RETRIES", "1")),
     )

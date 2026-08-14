@@ -2,12 +2,50 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import time
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from app.main import create_app
 
 TEST_PASSWORD = "test-password-1234"
+
+
+class CountingAIProvider:
+    def __init__(self) -> None:
+        self.lookbook_calls = 0
+
+    def generate_lookbook(self, context: dict) -> object:
+        self.lookbook_calls += 1
+        return {
+            "title": "테스트 룩북",
+            "intro": "테스트 소개",
+            "looks": [{"product_id": "P003", "styling": "AI 스타일링"}],
+            "closing": "테스트 마무리",
+        }
+
+    def generate_staff_guide(self, context: dict) -> object:
+        raise NotImplementedError
+
+
+class InvalidAIProvider:
+    def generate_lookbook(self, context: dict) -> object:
+        return {"title": "필드 누락"}
+
+    def generate_staff_guide(self, context: dict) -> object:
+        return {"customer_summary": 123}
+
+
+class SlowAIProvider:
+    def generate_lookbook(self, context: dict) -> object:
+        time.sleep(0.05)
+        return {}
+
+    def generate_staff_guide(self, context: dict) -> object:
+        time.sleep(0.05)
+        return {}
 
 
 def make_client() -> TestClient:
@@ -299,3 +337,158 @@ def test_only_one_concurrent_staff_claim_succeeds(tmp_path: Path) -> None:
         assert sorted(response.status_code for response in responses) == [200, 409]
         failed = next(response for response in responses if response.status_code == 409)
         assert failed.json()["error"]["code"] == "ALREADY_ASSIGNED"
+
+
+def test_lookbook_filters_inventory_uses_db_values_and_caches() -> None:
+    provider = CountingAIProvider()
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=provider,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        first = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        second = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+
+        assert first.status_code == 200
+        assert first.json() == second.json()
+        assert provider.lookbook_calls == 1
+        assert first.json()["looks"]
+        assert all(look["product_id"] != "P003" and look["in_stock"] for look in first.json()["looks"])
+        assert all(look["price"] > 0 and look["image_url"].startswith("/assets/products/") for look in first.json()["looks"])
+
+
+def test_staff_guide_requires_assignment_and_uses_masked_customer() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_staff_request(client, customer_headers)
+        staff_headers = headers(client, "staff@example.com")
+
+        denied = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "ASSIGNED_STAFF_REQUIRED"
+
+        assert client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers).status_code == 200
+        guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert guide.status_code == 200
+        assert guide.json()["customer"]["masked_name"] == "김**"
+        assert guide.json()["recommended_products"]
+        assert all(item["in_stock"] and item["quantity"] > 0 for item in guide.json()["recommended_products"])
+
+
+def test_invalid_ai_output_returns_safe_502() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=InvalidAIProvider(),
+        ai_max_retries=0,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        response = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert response.status_code == 502
+        assert response.json()["error"]["code"] == "AI_RESPONSE_INVALID"
+        assert "필드 누락" not in response.text
+
+
+def test_ai_timeout_returns_in_stock_fallback() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=SlowAIProvider(),
+        ai_timeout_seconds=0.001,
+        ai_max_retries=0,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        response = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert response.status_code == 200
+        assert response.json()["looks"]
+        assert all(look["in_stock"] for look in response.json()["looks"])
+
+
+def test_staff_and_customer_websocket_event_flow() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_headers = {"Authorization": f"Bearer {staff_tokens['access_token']}"}
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            checkin_id = create_staff_request(client, customer_headers)
+            waiting = staff_ws.receive_json()
+            assert waiting["event"] == "VISIT_WAITING"
+            assert waiting["data"]["checkin_id"] == checkin_id
+            assert waiting["data"]["masked_name"] == "김**"
+
+            claimed = client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers)
+            assert claimed.status_code == 200
+            staff_assigned = staff_ws.receive_json()
+            customer_assigned = customer_ws.receive_json()
+            assert staff_assigned["event"] == customer_assigned["event"] == "STAFF_ASSIGNED"
+            assert customer_assigned["data"]["staff"]["staff_id"] == "ST001"
+
+            guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+            assert guide.status_code == 200
+            assert staff_ws.receive_json()["event"] == "AI_GUIDE_READY"
+
+            serving = client.patch(
+                f"/api/v1/staff/check-ins/{checkin_id}/status",
+                headers=staff_headers,
+                json={"status": "SERVING"},
+            )
+            assert serving.status_code == 200
+            completed = client.patch(
+                f"/api/v1/staff/check-ins/{checkin_id}/status",
+                headers=staff_headers,
+                json={"status": "COMPLETED"},
+            )
+            assert completed.status_code == 200
+            assert staff_ws.receive_json()["event"] == "VISIT_COMPLETED"
+            assert customer_ws.receive_json()["event"] == "VISIT_COMPLETED"
+
+
+def test_websocket_auth_store_access_and_ping_pong() -> None:
+    with make_client() as client:
+        staff_token = login(client, "staff@example.com")["access_token"]
+        with client.websocket_connect(f"/api/v1/ws/staff/stores/S001?token={staff_token}") as websocket:
+            websocket.send_json({"event": "PING"})
+            assert websocket.receive_json()["event"] == "PONG"
+
+        with pytest.raises(WebSocketDisconnect) as invalid:
+            with client.websocket_connect("/api/v1/ws/staff/stores/S001?token=invalid-token"):
+                pass
+        assert invalid.value.code == 4401
+
+        with pytest.raises(WebSocketDisconnect) as wrong_store:
+            with client.websocket_connect(f"/api/v1/ws/staff/stores/S002?token={staff_token}"):
+                pass
+        assert wrong_store.value.code == 4403
+
+
+def test_visit_cancelled_event_reaches_staff_and_customer() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            checkin_id = create_staff_request(client, customer_headers)
+            assert staff_ws.receive_json()["event"] == "VISIT_WAITING"
+            cancelled = client.post(f"/api/v1/check-ins/{checkin_id}/cancel", headers=customer_headers)
+            assert cancelled.status_code == 200
+            staff_event = staff_ws.receive_json()
+            customer_event = customer_ws.receive_json()
+            assert staff_event["event"] == customer_event["event"] == "VISIT_CANCELLED"
+            assert customer_event["data"]["checkin_id"] == checkin_id

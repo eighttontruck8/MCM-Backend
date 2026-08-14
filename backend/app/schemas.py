@@ -205,6 +205,52 @@ class StaffStatusRequest(ApiModel):
     status: CheckinStatus
 
 
+class LookbookProductResponse(ApiModel):
+    product_id: str
+    product: str
+    styling: str
+    image_url: str
+    price: int
+    in_stock: bool
+
+
+class LookbookResponse(ApiModel):
+    title: str
+    intro: str
+    looks: list[LookbookProductResponse]
+    closing: str
+    generated_at: datetime
+
+
+class GuideCustomerResponse(ApiModel):
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_count: int
+    visit_purpose: VisitPurposeCode
+
+
+class GuideProductResponse(ApiModel):
+    product_id: str
+    name: str
+    reason: str
+    image_url: str
+    price: int
+    quantity: int
+    in_stock: bool
+
+
+class StaffGuideResponse(ApiModel):
+    checkin_id: str
+    customer: GuideCustomerResponse
+    customer_summary: str
+    recommended_products: list[GuideProductResponse]
+    greeting: str
+    cross_sell: str
+    caution: str
+    generated_at: datetime
+
+
 class CheckinResponse(ApiModel):
     checkin_id: str
     customer_id: str
