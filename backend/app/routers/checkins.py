@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,18 +12,20 @@ from app.database import get_db
 from app.dependencies import current_customer_id
 from app.errors import DomainError
 from app.mappers import to_store
-from app.models import Checkin, Consent, Customer, NfcTag, Store
+from app.models import Checkin, Consent, Customer, NfcTag, Recommendation, Staff, StaffAssignment, Store, User
 from app.schemas import (
     CheckinCreateRequest,
     CheckinCreateResponse,
     CheckinResponse,
     CheckinStatus,
+    ConsentRevocationResponse,
     MessageResponse,
     ServiceRequestCreate,
     ServiceRequestResponse,
     ShoppingMode,
     ShoppingModeRequest,
     ShoppingModeResponse,
+    StaffSummaryResponse,
 )
 
 
@@ -34,11 +36,17 @@ ACTIVE_STATUSES = {
     CheckinStatus.CHECKED_IN.value,
     CheckinStatus.SELF_SHOPPING.value,
     CheckinStatus.WAITING_FOR_STAFF.value,
+    CheckinStatus.ASSIGNED.value,
+    CheckinStatus.SERVING.value,
 }
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def as_utc(value: datetime) -> datetime:
+    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
 def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
@@ -50,7 +58,24 @@ def owned_checkin(checkin_id: str, customer_id: str, db: Session) -> Checkin:
     return checkin
 
 
-def to_checkin_response(checkin: Checkin) -> CheckinResponse:
+def to_checkin_response(checkin: Checkin, db: Session) -> CheckinResponse:
+    assigned_staff = None
+    assignment = db.scalar(
+        select(StaffAssignment).where(
+            StaffAssignment.checkin_id == checkin.id,
+            StaffAssignment.ended_at.is_(None),
+        )
+    )
+    if assignment is not None:
+        staff = db.get(Staff, assignment.staff_id)
+        user = db.get(User, assignment.staff_id)
+        if staff is not None and user is not None:
+            assigned_staff = StaffSummaryResponse(
+                staff_id=staff.id,
+                name=user.display_name,
+                title=staff.title,
+                experience_years=staff.experience_years,
+            )
     return CheckinResponse(
         checkin_id=checkin.id,
         customer_id=checkin.customer_id,
@@ -61,6 +86,7 @@ def to_checkin_response(checkin: Checkin) -> CheckinResponse:
         status=checkin.status,
         checked_in_at=checkin.checked_in_at,
         updated_at=checkin.updated_at,
+        assigned_staff=assigned_staff,
     )
 
 
@@ -121,7 +147,7 @@ def create_checkin(
 
 @router.get("/{checkin_id}", response_model=CheckinResponse)
 def get_checkin(checkin_id: str, customer_id: CustomerId, db: DbSession) -> CheckinResponse:
-    return to_checkin_response(owned_checkin(checkin_id, customer_id, db))
+    return to_checkin_response(owned_checkin(checkin_id, customer_id, db), db)
 
 
 @router.patch("/{checkin_id}/shopping-mode", response_model=ShoppingModeResponse)
@@ -156,6 +182,7 @@ def set_shopping_mode(
 def create_service_request(
     checkin_id: str,
     body: ServiceRequestCreate,
+    request: Request,
     customer_id: CustomerId,
     db: DbSession,
 ) -> ServiceRequestResponse:
@@ -184,6 +211,21 @@ def create_service_request(
     checkin.updated_at = now
     db.commit()
 
+    customer = db.get(Customer, customer_id)
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}"],
+        "VISIT_WAITING",
+        {
+            "checkin_id": checkin.id,
+            "customer_id": customer.id,
+            "masked_name": f"{customer.name[0]}{'*' * max(2, len(customer.name) - 1)}",
+            "membership": customer.membership,
+            "visit_purpose": checkin.visit_purpose_code,
+            "waiting_since": now,
+            "ai_guide_status": "NOT_STARTED",
+        },
+    )
+
     return ServiceRequestResponse(
         checkin_id=checkin.id,
         status=checkin.status,
@@ -192,9 +234,74 @@ def create_service_request(
     )
 
 
+@router.post("/{checkin_id}/consent/revoke", response_model=ConsentRevocationResponse)
+def revoke_consent(
+    checkin_id: str,
+    request: Request,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> ConsentRevocationResponse:
+    checkin = owned_checkin(checkin_id, customer_id, db)
+    consent = db.scalar(select(Consent).where(Consent.checkin_id == checkin.id))
+    if consent is None:
+        raise DomainError(404, "CONSENT_NOT_FOUND", "철회할 정보 공유 동의를 찾을 수 없습니다.")
+    if consent.revoked_at is not None:
+        return ConsentRevocationResponse(
+            checkin_id=checkin.id,
+            consent_status="REVOKED",
+            shopping_mode=checkin.shopping_mode,
+            checkin_status=checkin.status,
+            revoked_at=as_utc(consent.revoked_at),
+        )
+
+    now = utc_now()
+    consent.revoked_at = now
+    checkin.visit_note = None
+    if checkin.status in {
+        CheckinStatus.WAITING_FOR_STAFF.value,
+        CheckinStatus.ASSIGNED.value,
+        CheckinStatus.SERVING.value,
+    }:
+        checkin.shopping_mode = ShoppingMode.PRIVATE.value
+        checkin.status = CheckinStatus.SELF_SHOPPING.value
+        checkin.updated_at = now
+
+    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    if assignment is not None and assignment.ended_at is None:
+        assignment.ended_at = now
+
+    recommendations = db.scalars(
+        select(Recommendation).where(
+            Recommendation.checkin_id == checkin.id,
+            Recommendation.type == "STAFF_GUIDE",
+        )
+    ).all()
+    for recommendation in recommendations:
+        recommendation.status = "REVOKED"
+        recommendation.output = None
+        recommendation.error_code = "CONSENT_REVOKED"
+        recommendation.updated_at = now
+    db.commit()
+
+    response = ConsentRevocationResponse(
+        checkin_id=checkin.id,
+        consent_status="REVOKED",
+        shopping_mode=checkin.shopping_mode,
+        checkin_status=checkin.status,
+        revoked_at=now,
+    )
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+        "CONSENT_REVOKED",
+        response.model_dump(mode="json"),
+    )
+    return response
+
+
 @router.post("/{checkin_id}/cancel", response_model=MessageResponse)
 def cancel_checkin(
     checkin_id: str,
+    request: Request,
     customer_id: CustomerId,
     db: DbSession,
 ) -> MessageResponse:
@@ -204,5 +311,13 @@ def cancel_checkin(
     checkin.status = CheckinStatus.CANCELLED.value
     checkin.updated_at = utc_now()
     checkin.completed_at = checkin.updated_at
+    assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin.id))
+    if assignment is not None:
+        assignment.ended_at = checkin.updated_at
     db.commit()
+    request.app.state.event_broker.publish(
+        [f"staff:{checkin.store_id}", f"customer:{checkin.customer_id}"],
+        "VISIT_CANCELLED",
+        {"checkin_id": checkin.id, "status": checkin.status},
+    )
     return MessageResponse(message="체크인이 취소되었습니다.")

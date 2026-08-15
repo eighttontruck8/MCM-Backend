@@ -32,6 +32,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(20), index=True)
     display_name: Mapped[str] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    auth_version: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
@@ -42,6 +43,7 @@ class Staff(Base):
     id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
     title: Mapped[str] = mapped_column(String(80))
+    experience_years: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class RefreshToken(Base):
@@ -52,6 +54,17 @@ class RefreshToken(Base):
     token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class Store(Base):
@@ -119,3 +132,48 @@ class Consent(Base):
     policy_version: Mapped[str] = mapped_column(String(80))
     scopes: Mapped[list[str]] = mapped_column(JSON, default=list)
     agreed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class StaffAssignment(Base):
+    __tablename__ = "staff_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    checkin_id: Mapped[str] = mapped_column(ForeignKey("checkins.id"), unique=True, index=True)
+    staff_id: Mapped[str] = mapped_column(ForeignKey("staff.id"), index=True)
+    assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    checkin_id: Mapped[str] = mapped_column(ForeignKey("checkins.id"), index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
+    type: Mapped[str] = mapped_column(String(30), index=True)
+    status: Mapped[str] = mapped_column(String(30), index=True)
+    input_hash: Mapped[str] = mapped_column(String(64), index=True)
+    output: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class CustomerWishlist(Base):
+    __tablename__ = "customer_wishlist"
+
+    customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), primary_key=True)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class PurchaseHistory(Base):
+    __tablename__ = "purchase_history"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
+    product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), index=True)
+    category_snapshot: Mapped[str] = mapped_column(String(80))
+    price_snapshot: Mapped[int] = mapped_column(Integer)
+    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

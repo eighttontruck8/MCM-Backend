@@ -1,10 +1,55 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import time
+
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
+from sqlalchemy import select
 
 from app.main import create_app
+from app.models import Consent, PasswordResetToken, Recommendation, StaffAssignment
+from app.security import token_hash
 
 TEST_PASSWORD = "test-password-1234"
+
+
+class CountingAIProvider:
+    def __init__(self) -> None:
+        self.lookbook_calls = 0
+
+    def generate_lookbook(self, context: dict) -> object:
+        self.lookbook_calls += 1
+        return {
+            "title": "테스트 룩북",
+            "intro": "테스트 소개",
+            "looks": [{"product_id": "P003", "styling": "AI 스타일링"}],
+            "closing": "테스트 마무리",
+        }
+
+    def generate_staff_guide(self, context: dict) -> object:
+        raise NotImplementedError
+
+
+class InvalidAIProvider:
+    def generate_lookbook(self, context: dict) -> object:
+        return {"title": "필드 누락"}
+
+    def generate_staff_guide(self, context: dict) -> object:
+        return {"customer_summary": 123}
+
+
+class SlowAIProvider:
+    def generate_lookbook(self, context: dict) -> object:
+        time.sleep(0.05)
+        return {}
+
+    def generate_staff_guide(self, context: dict) -> object:
+        time.sleep(0.05)
+        return {}
 
 
 def make_client() -> TestClient:
@@ -38,6 +83,31 @@ def create_checkin(client: TestClient, auth_headers: dict[str, str] | None = Non
     )
     assert response.status_code == 201, response.text
     return response.json()["checkin_id"]
+
+
+def create_staff_request(client: TestClient, auth_headers: dict[str, str] | None = None) -> str:
+    customer_headers = auth_headers or headers(client)
+    checkin_id = create_checkin(client, customer_headers)
+    mode = client.patch(
+        f"/api/v1/check-ins/{checkin_id}/shopping-mode",
+        headers=customer_headers,
+        json={"shopping_mode": "STAFF_ASSISTED"},
+    )
+    assert mode.status_code == 200, mode.text
+    service_request = client.post(
+        f"/api/v1/check-ins/{checkin_id}/service-request",
+        headers=customer_headers,
+        json={
+            "consent": {
+                "agreed": True,
+                "policy_version": "staff-profile-share-v1",
+                "scopes": ["PURCHASE_HISTORY", "STYLE_PROFILE"],
+            },
+            "visit_purpose": {"code": "BUSINESS_TRIP", "note": "노트북 수납 가방"},
+        },
+    )
+    assert service_request.status_code == 202, service_request.text
+    return checkin_id
 
 
 def test_health_and_seed_catalog() -> None:
@@ -176,3 +246,520 @@ def test_missing_or_invalid_credentials() -> None:
         assert missing.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
         invalid_login = client.post("/api/v1/auth/login", json={"email": "customer@example.com", "password": "wrong-password"})
         assert invalid_login.status_code == 401
+
+
+def test_staff_queue_store_access_masking_and_visit_progress() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_staff_request(client, customer_headers)
+        staff_headers = headers(client, "staff@example.com")
+        other_staff_headers = headers(client, "staff2@example.com")
+
+        denied_store = client.get("/api/v1/staff/stores/S002/visits", headers=staff_headers)
+        assert denied_store.status_code == 403
+        assert denied_store.json()["error"]["code"] == "STAFF_STORE_ACCESS_DENIED"
+
+        queue = client.get("/api/v1/staff/stores/S001/visits", headers=staff_headers)
+        assert queue.status_code == 200
+        assert queue.json()["items"][0]["checkin_id"] == checkin_id
+        assert queue.json()["items"][0]["masked_name"] == "김**"
+
+        profile = client.get("/api/v1/staff/customers/C001", headers=staff_headers)
+        assert profile.status_code == 200
+        assert profile.json()["masked_name"] == "김**"
+        assert profile.json()["purchase_count"] == 2
+
+        claimed = client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers)
+        assert claimed.status_code == 200
+        assert claimed.json()["status"] == "ASSIGNED"
+        assert claimed.json()["staff"]["staff_id"] == "ST001"
+
+        duplicate_checkin = client.post(
+            "/api/v1/check-ins",
+            headers=customer_headers,
+            json={"tag_token": "nfc-demo-seoul-001"},
+        )
+        assert duplicate_checkin.status_code == 409
+        assert duplicate_checkin.json()["error"]["code"] == "ACTIVE_CHECKIN_EXISTS"
+
+        duplicate = client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=other_staff_headers)
+        assert duplicate.status_code == 409
+        assert duplicate.json()["error"]["code"] == "ALREADY_ASSIGNED"
+
+        customer_view = client.get(f"/api/v1/check-ins/{checkin_id}", headers=customer_headers)
+        assert customer_view.json()["assigned_staff"]["staff_id"] == "ST001"
+
+        not_assigned = client.patch(
+            f"/api/v1/staff/check-ins/{checkin_id}/status",
+            headers=other_staff_headers,
+            json={"status": "SERVING"},
+        )
+        assert not_assigned.status_code == 403
+
+        invalid_transition = client.patch(
+            f"/api/v1/staff/check-ins/{checkin_id}/status",
+            headers=staff_headers,
+            json={"status": "COMPLETED"},
+        )
+        assert invalid_transition.status_code == 409
+        assert invalid_transition.json()["error"]["code"] == "CHECKIN_STATE_CONFLICT"
+
+        serving = client.patch(
+            f"/api/v1/staff/check-ins/{checkin_id}/status",
+            headers=staff_headers,
+            json={"status": "SERVING"},
+        )
+        assert serving.status_code == 200
+        completed = client.patch(
+            f"/api/v1/staff/check-ins/{checkin_id}/status",
+            headers=staff_headers,
+            json={"status": "COMPLETED"},
+        )
+        assert completed.status_code == 200
+        assert completed.json()["status"] == "COMPLETED"
+        assert client.get("/api/v1/staff/customers/C001", headers=staff_headers).status_code == 403
+
+
+def test_only_one_concurrent_staff_claim_succeeds(tmp_path: Path) -> None:
+    database_path = (tmp_path / "concurrent.db").as_posix()
+    app = create_app(
+        f"sqlite+pysqlite:///{database_path}",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+    )
+    with TestClient(app) as client:
+        checkin_id = create_staff_request(client)
+        staff_headers = headers(client, "staff@example.com")
+        other_staff_headers = headers(client, "staff2@example.com")
+
+        def claim(auth_headers: dict[str, str]):
+            return client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=auth_headers)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            responses = list(executor.map(claim, [staff_headers, other_staff_headers]))
+
+        assert sorted(response.status_code for response in responses) == [200, 409]
+        failed = next(response for response in responses if response.status_code == 409)
+        assert failed.json()["error"]["code"] == "ALREADY_ASSIGNED"
+
+
+def test_lookbook_filters_inventory_uses_db_values_and_caches() -> None:
+    provider = CountingAIProvider()
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=provider,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        first = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        second = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+
+        assert first.status_code == 200
+        assert first.json() == second.json()
+        assert provider.lookbook_calls == 1
+        assert first.json()["looks"]
+        assert all(look["product_id"] != "P003" and look["in_stock"] for look in first.json()["looks"])
+        assert all(look["price"] > 0 and look["image_url"].startswith("/assets/products/") for look in first.json()["looks"])
+
+
+def test_staff_guide_requires_assignment_and_uses_masked_customer() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_staff_request(client, customer_headers)
+        staff_headers = headers(client, "staff@example.com")
+
+        denied = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "ASSIGNED_STAFF_REQUIRED"
+
+        assert client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers).status_code == 200
+        guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert guide.status_code == 200
+        assert guide.json()["customer"]["masked_name"] == "김**"
+        assert guide.json()["recommended_products"]
+        assert all(item["in_stock"] and item["quantity"] > 0 for item in guide.json()["recommended_products"])
+
+
+def test_invalid_ai_output_returns_safe_502() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=InvalidAIProvider(),
+        ai_max_retries=0,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        response = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert response.status_code == 502
+        assert response.json()["error"]["code"] == "AI_RESPONSE_INVALID"
+        assert "필드 누락" not in response.text
+
+
+def test_ai_timeout_returns_in_stock_fallback() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        ai_provider=SlowAIProvider(),
+        ai_timeout_seconds=0.001,
+        ai_max_retries=0,
+    )
+    with TestClient(app) as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        response = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert response.status_code == 200
+        assert response.json()["looks"]
+        assert all(look["in_stock"] for look in response.json()["looks"])
+
+
+def test_staff_and_customer_websocket_event_flow() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_headers = {"Authorization": f"Bearer {staff_tokens['access_token']}"}
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            checkin_id = create_staff_request(client, customer_headers)
+            waiting = staff_ws.receive_json()
+            assert waiting["event"] == "VISIT_WAITING"
+            assert waiting["data"]["checkin_id"] == checkin_id
+            assert waiting["data"]["masked_name"] == "김**"
+
+            claimed = client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers)
+            assert claimed.status_code == 200
+            staff_assigned = staff_ws.receive_json()
+            customer_assigned = customer_ws.receive_json()
+            assert staff_assigned["event"] == customer_assigned["event"] == "STAFF_ASSIGNED"
+            assert customer_assigned["data"]["staff"]["staff_id"] == "ST001"
+
+            guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+            assert guide.status_code == 200
+            assert staff_ws.receive_json()["event"] == "AI_GUIDE_READY"
+
+            serving = client.patch(
+                f"/api/v1/staff/check-ins/{checkin_id}/status",
+                headers=staff_headers,
+                json={"status": "SERVING"},
+            )
+            assert serving.status_code == 200
+            completed = client.patch(
+                f"/api/v1/staff/check-ins/{checkin_id}/status",
+                headers=staff_headers,
+                json={"status": "COMPLETED"},
+            )
+            assert completed.status_code == 200
+            assert staff_ws.receive_json()["event"] == "VISIT_COMPLETED"
+            assert customer_ws.receive_json()["event"] == "VISIT_COMPLETED"
+
+
+def test_websocket_auth_store_access_and_ping_pong() -> None:
+    with make_client() as client:
+        staff_token = login(client, "staff@example.com")["access_token"]
+        with client.websocket_connect(f"/api/v1/ws/staff/stores/S001?token={staff_token}") as websocket:
+            websocket.send_json({"event": "PING"})
+            assert websocket.receive_json()["event"] == "PONG"
+
+        with pytest.raises(WebSocketDisconnect) as invalid:
+            with client.websocket_connect("/api/v1/ws/staff/stores/S001?token=invalid-token"):
+                pass
+        assert invalid.value.code == 4401
+
+        with pytest.raises(WebSocketDisconnect) as wrong_store:
+            with client.websocket_connect(f"/api/v1/ws/staff/stores/S002?token={staff_token}"):
+                pass
+        assert wrong_store.value.code == 4403
+
+
+def test_visit_cancelled_event_reaches_staff_and_customer() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            checkin_id = create_staff_request(client, customer_headers)
+            assert staff_ws.receive_json()["event"] == "VISIT_WAITING"
+            cancelled = client.post(f"/api/v1/check-ins/{checkin_id}/cancel", headers=customer_headers)
+            assert cancelled.status_code == 200
+            staff_event = staff_ws.receive_json()
+            customer_event = customer_ws.receive_json()
+            assert staff_event["event"] == customer_event["event"] == "VISIT_CANCELLED"
+            assert customer_event["data"]["checkin_id"] == checkin_id
+
+
+def test_wishlist_add_is_idempotent_delete_and_customer_isolation() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        other_customer_headers = headers(client, "customer2@example.com")
+
+        initial = client.get("/api/v1/customers/me/wishlist", headers=customer_headers)
+        assert [item["product_id"] for item in initial.json()["items"]] == ["P001"]
+
+        first_add = client.post("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        second_add = client.post("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        assert first_add.status_code == second_add.status_code == 201
+        wishlist = client.get("/api/v1/customers/me/wishlist", headers=customer_headers)
+        assert [item["product_id"] for item in wishlist.json()["items"]].count("P002") == 1
+
+        profile = client.get("/api/v1/customers/me", headers=customer_headers)
+        assert "P002" in profile.json()["liked_product_ids"]
+        other_wishlist = client.get("/api/v1/customers/me/wishlist", headers=other_customer_headers)
+        assert "P002" not in [item["product_id"] for item in other_wishlist.json()["items"]]
+
+        removed = client.delete("/api/v1/customers/me/wishlist/P002", headers=customer_headers)
+        assert removed.status_code == 200
+        assert client.delete("/api/v1/customers/me/wishlist/P002", headers=customer_headers).status_code == 404
+        profile = client.get("/api/v1/customers/me", headers=customer_headers)
+        assert "P002" not in profile.json()["liked_product_ids"]
+
+
+def test_saved_recommendations_only_return_current_in_stock_products() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        lookbook = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert lookbook.status_code == 200
+
+        recommendations = client.get("/api/v1/customers/me/recommendations", headers=customer_headers)
+        assert recommendations.status_code == 200
+        assert recommendations.json()["items"]
+        assert all(item["inventory"]["in_stock"] for item in recommendations.json()["items"])
+        assert "P003" not in [item["product_id"] for item in recommendations.json()["items"]]
+
+
+def test_purchase_history_seed_and_customer_role_access() -> None:
+    with make_client() as client:
+        customer_purchases = client.get("/api/v1/customers/me/purchases", headers=headers(client))
+        assert customer_purchases.status_code == 200
+        assert len(customer_purchases.json()["items"]) == 2
+        assert all(item["price"] > 0 and item["purchased_at"] for item in customer_purchases.json()["items"])
+
+        other_purchases = client.get(
+            "/api/v1/customers/me/purchases",
+            headers=headers(client, "customer2@example.com"),
+        )
+        assert len(other_purchases.json()["items"]) == 1
+
+        staff_headers = headers(client, "staff@example.com")
+        denied = client.get("/api/v1/customers/me/purchases", headers=staff_headers)
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "CUSTOMER_ROLE_REQUIRED"
+
+
+def test_consent_revocation_immediately_blocks_staff_and_removes_sensitive_output() -> None:
+    with make_client() as client:
+        customer_tokens = login(client)
+        staff_tokens = login(client, "staff@example.com")
+        customer_headers = {"Authorization": f"Bearer {customer_tokens['access_token']}"}
+        staff_headers = {"Authorization": f"Bearer {staff_tokens['access_token']}"}
+        checkin_id = create_staff_request(client, customer_headers)
+        assert client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers).status_code == 200
+        assert client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers).status_code == 200
+
+        staff_url = f"/api/v1/ws/staff/stores/S001?token={staff_tokens['access_token']}"
+        customer_url = f"/api/v1/ws/customers/me?token={customer_tokens['access_token']}"
+        with client.websocket_connect(staff_url) as staff_ws, client.websocket_connect(customer_url) as customer_ws:
+            revoked = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+            assert revoked.status_code == 200
+            assert revoked.json()["consent_status"] == "REVOKED"
+            assert revoked.json()["shopping_mode"] == "PRIVATE"
+            assert revoked.json()["checkin_status"] == "SELF_SHOPPING"
+            assert staff_ws.receive_json()["event"] == "CONSENT_REVOKED"
+            assert customer_ws.receive_json()["event"] == "CONSENT_REVOKED"
+
+        repeated = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+        assert repeated.status_code == 200
+        assert repeated.json()["revoked_at"] == revoked.json()["revoked_at"]
+
+        staff_profile = client.get("/api/v1/staff/customers/C001", headers=staff_headers)
+        assert staff_profile.status_code == 403
+        guide = client.get(f"/api/v1/staff/check-ins/{checkin_id}/guide", headers=staff_headers)
+        assert guide.status_code == 403
+        assert guide.json()["error"]["code"] == "STAFF_GUIDE_ACCESS_DENIED"
+
+        customer_view = client.get(f"/api/v1/check-ins/{checkin_id}", headers=customer_headers)
+        assert customer_view.json()["visit_note"] is None
+        assert customer_view.json()["status"] == "SELF_SHOPPING"
+        assert customer_view.json()["assigned_staff"] is None
+
+        with client.app.state.database.session_factory() as db:
+            consent = db.scalar(select(Consent).where(Consent.checkin_id == checkin_id))
+            assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == checkin_id))
+            recommendation = db.scalar(
+                select(Recommendation).where(
+                    Recommendation.checkin_id == checkin_id,
+                    Recommendation.type == "STAFF_GUIDE",
+                )
+            )
+            assert consent.revoked_at is not None
+            assert assignment.ended_at is not None
+            assert recommendation.status == "REVOKED"
+            assert recommendation.output is None
+            assert recommendation.error_code == "CONSENT_REVOKED"
+
+
+def test_consent_revocation_requires_owner_and_existing_consent() -> None:
+    with make_client() as client:
+        customer_headers = headers(client)
+        checkin_id = create_checkin(client, customer_headers)
+        missing = client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers)
+        assert missing.status_code == 404
+        assert missing.json()["error"]["code"] == "CONSENT_NOT_FOUND"
+
+        denied = client.post(
+            f"/api/v1/check-ins/{checkin_id}/consent/revoke",
+            headers=headers(client, "customer2@example.com"),
+        )
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "CHECKIN_ACCESS_DENIED"
+
+
+def test_password_reset_revokes_existing_tokens_and_is_one_time() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    new_password = "new-test-password-5678"
+    with TestClient(app) as client:
+        old_tokens = login(client)
+        other_tokens = login(client, "customer2@example.com")
+
+        first_request = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        second_request = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        assert first_request.status_code == second_request.status_code == 202
+        first_token = first_request.json()["reset_token"]
+        reset_token = second_request.json()["reset_token"]
+        assert first_token and reset_token and first_token != reset_token
+
+        invalidated = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": first_token, "new_password": new_password},
+        )
+        assert invalidated.status_code == 400
+
+        confirmed = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": new_password},
+        )
+        assert confirmed.status_code == 200
+
+        old_headers = {"Authorization": f"Bearer {old_tokens['access_token']}"}
+        assert client.get("/api/v1/me", headers=old_headers).status_code == 401
+        assert client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": old_tokens["refresh_token"]},
+        ).status_code == 401
+        assert client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        ).status_code == 401
+
+        new_login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": new_password},
+        )
+        assert new_login.status_code == 200
+        assert client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": "another-password-9999"},
+        ).status_code == 400
+
+        other_headers = {"Authorization": f"Bearer {other_tokens['access_token']}"}
+        assert client.get("/api/v1/me", headers=other_headers).status_code == 200
+
+        with client.app.state.database.session_factory() as db:
+            stored = db.scalar(
+                select(PasswordResetToken).where(
+                    PasswordResetToken.token_hash == token_hash(reset_token)
+                )
+            )
+            assert stored.token_hash != reset_token
+            assert len(stored.token_hash) == 64
+            assert stored.used_at is not None
+
+
+def test_password_reset_request_does_not_expose_account_or_token_by_default() -> None:
+    with make_client() as client:
+        existing = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        unknown = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "unknown@example.com"},
+        )
+        assert existing.status_code == unknown.status_code == 202
+        assert existing.json() == unknown.json()
+        assert existing.json()["reset_token"] is None
+
+
+def test_password_reset_rejects_current_password() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    with TestClient(app) as client:
+        requested = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        response = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={
+                "reset_token": requested.json()["reset_token"],
+                "new_password": TEST_PASSWORD,
+            },
+        )
+        assert response.status_code == 409
+        assert response.json()["error"]["code"] == "PASSWORD_REUSE_NOT_ALLOWED"
+
+
+def test_expired_password_reset_token_is_rejected() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    with TestClient(app) as client:
+        requested = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        reset_token = requested.json()["reset_token"]
+        with client.app.state.database.session_factory() as db:
+            stored = db.scalar(
+                select(PasswordResetToken).where(
+                    PasswordResetToken.token_hash == token_hash(reset_token)
+                )
+            )
+            stored.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+            db.commit()
+
+        response = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": "new-test-password-5678"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "INVALID_PASSWORD_RESET_TOKEN"

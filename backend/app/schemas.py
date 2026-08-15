@@ -19,6 +19,8 @@ class CheckinStatus(StrEnum):
     CHECKED_IN = "CHECKED_IN"
     SELF_SHOPPING = "SELF_SHOPPING"
     WAITING_FOR_STAFF = "WAITING_FOR_STAFF"
+    ASSIGNED = "ASSIGNED"
+    SERVING = "SERVING"
     CANCELLED = "CANCELLED"
     COMPLETED = "COMPLETED"
 
@@ -48,6 +50,20 @@ class RefreshRequest(ApiModel):
 
 class LogoutRequest(RefreshRequest):
     pass
+
+
+class PasswordResetRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=255)
+
+
+class PasswordResetConfirmRequest(ApiModel):
+    reset_token: str = Field(min_length=32, max_length=500)
+    new_password: str = Field(min_length=12, max_length=200)
+
+
+class PasswordResetRequestResponse(ApiModel):
+    message: str
+    reset_token: str | None = None
 
 
 class AuthUserResponse(ApiModel):
@@ -109,6 +125,21 @@ class ProductListResponse(ApiModel):
     next_cursor: str | None = None
 
 
+class PurchaseResponse(ApiModel):
+    purchase_id: str
+    product_id: str
+    name: str
+    category: str
+    price: int
+    image_url: str
+    purchased_at: datetime
+
+
+class PurchaseListResponse(ApiModel):
+    items: list[PurchaseResponse]
+    next_cursor: str | None = None
+
+
 class CheckinCreateRequest(ApiModel):
     tag_token: str = Field(min_length=8, max_length=255)
 
@@ -157,6 +188,106 @@ class ServiceRequestResponse(ApiModel):
     estimated_wait_minutes: int
 
 
+class ConsentRevocationResponse(ApiModel):
+    checkin_id: str
+    consent_status: str
+    shopping_mode: ShoppingMode
+    checkin_status: CheckinStatus
+    revoked_at: datetime
+
+
+class StaffSummaryResponse(ApiModel):
+    staff_id: str
+    name: str
+    title: str
+    experience_years: int
+
+
+class StaffAssignmentResponse(ApiModel):
+    checkin_id: str
+    status: CheckinStatus
+    staff: StaffSummaryResponse
+    assigned_at: datetime
+
+
+class StaffVisitResponse(ApiModel):
+    checkin_id: str
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_purpose: VisitPurposeCode
+    waiting_since: datetime
+    ai_guide_status: str
+
+
+class StaffVisitListResponse(ApiModel):
+    items: list[StaffVisitResponse]
+    next_cursor: str | None = None
+
+
+class StaffCustomerResponse(ApiModel):
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_count: int
+    visit_purpose: VisitPurposeCode
+    preferred_colors: list[str] | None = None
+    preferred_style: str | None = None
+    recently_viewed_product_ids: list[str] | None = None
+    liked_product_ids: list[str] | None = None
+    purchase_count: int | None = None
+
+
+class StaffStatusRequest(ApiModel):
+    status: CheckinStatus
+
+
+class LookbookProductResponse(ApiModel):
+    product_id: str
+    product: str
+    styling: str
+    image_url: str
+    price: int
+    in_stock: bool
+
+
+class LookbookResponse(ApiModel):
+    title: str
+    intro: str
+    looks: list[LookbookProductResponse]
+    closing: str
+    generated_at: datetime
+
+
+class GuideCustomerResponse(ApiModel):
+    customer_id: str
+    masked_name: str
+    membership: str
+    visit_count: int
+    visit_purpose: VisitPurposeCode
+
+
+class GuideProductResponse(ApiModel):
+    product_id: str
+    name: str
+    reason: str
+    image_url: str
+    price: int
+    quantity: int
+    in_stock: bool
+
+
+class StaffGuideResponse(ApiModel):
+    checkin_id: str
+    customer: GuideCustomerResponse
+    customer_summary: str
+    recommended_products: list[GuideProductResponse]
+    greeting: str
+    cross_sell: str
+    caution: str
+    generated_at: datetime
+
+
 class CheckinResponse(ApiModel):
     checkin_id: str
     customer_id: str
@@ -167,6 +298,7 @@ class CheckinResponse(ApiModel):
     status: CheckinStatus
     checked_in_at: datetime
     updated_at: datetime
+    assigned_staff: StaffSummaryResponse | None = None
 
 
 class MessageResponse(ApiModel):
