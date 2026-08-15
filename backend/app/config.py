@@ -23,6 +23,8 @@ class Settings:
     ai_rate_limit: int
     frontend_base_url: str
     demo_qr_token: str
+    auto_create_schema: bool
+    seed_demo_data: bool
 
 
 def load_settings() -> Settings:
@@ -44,4 +46,6 @@ def load_settings() -> Settings:
         ai_rate_limit=int(os.getenv("M_JOURNEY_AI_RATE_LIMIT", "10")),
         frontend_base_url=os.getenv("M_JOURNEY_FRONTEND_BASE_URL", "http://localhost:5173").rstrip("/"),
         demo_qr_token=os.getenv("M_JOURNEY_DEMO_QR_TOKEN", "qr-demo-seoul-001-7f4d0b9e8c2a"),
+        auto_create_schema=os.getenv("M_JOURNEY_AUTO_CREATE_SCHEMA", "true").lower() == "true",
+        seed_demo_data=os.getenv("M_JOURNEY_SEED_DEMO_DATA", "true").lower() == "true",
     )

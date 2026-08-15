@@ -38,19 +38,25 @@ def create_app(
     rate_limits: dict[str, int] | None = None,
     frontend_base_url: str | None = None,
     demo_qr_token: str | None = None,
+    auto_create_schema: bool | None = None,
+    seed_demo_data: bool | None = None,
 ) -> FastAPI:
     settings = load_settings()
     database = Database(database_url or settings.database_url)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        database.create_schema()
-        with database.session_factory() as session:
-            seed_database(
-                session,
-                demo_password if demo_password is not None else settings.demo_password,
-                demo_qr_token or settings.demo_qr_token,
-            )
+        should_create_schema = auto_create_schema if auto_create_schema is not None else settings.auto_create_schema
+        should_seed_demo = seed_demo_data if seed_demo_data is not None else settings.seed_demo_data
+        if should_create_schema:
+            database.create_schema()
+        if should_seed_demo:
+            with database.session_factory() as session:
+                seed_database(
+                    session,
+                    demo_password if demo_password is not None else settings.demo_password,
+                    demo_qr_token or settings.demo_qr_token,
+                )
         yield
         database.dispose()
 

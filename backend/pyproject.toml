@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "M-Journey hackathon backend API"
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.14,<2",
     "fastapi>=0.116,<1",
+    "psycopg[binary]>=3.2,<4",
     "pydantic>=2.11,<3",
     "sqlalchemy>=2.0,<3",
     "uvicorn[standard]>=0.35,<1",

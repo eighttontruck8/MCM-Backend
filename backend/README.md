@@ -19,6 +19,27 @@ uv run uvicorn app.main:app --reload
 
 기본 SQLite DB는 첫 실행 시 자동 생성되고 가상 데이터가 입력된다.
 
+## 데이터베이스 마이그레이션
+
+스키마 변경은 Alembic으로 관리한다. 로컬 SQLite에서도 다음 명령으로 초기 스키마를 적용할 수 있다.
+
+```powershell
+cd backend
+uv run alembic upgrade head
+```
+
+PostgreSQL 배포 환경에서는 연결 URL을 지정하고, 앱 시작 시 `create_all`과 데모 seed가 실행되지 않도록 설정한 뒤 마이그레이션을 먼저 적용한다.
+
+```powershell
+$env:M_JOURNEY_DATABASE_URL='postgresql+psycopg://user:password@host:5432/mjourney'
+$env:M_JOURNEY_AUTO_CREATE_SCHEMA='false'
+$env:M_JOURNEY_SEED_DEMO_DATA='false'
+uv run alembic upgrade head
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+기존 개발용 SQLite 파일은 Alembic 도입 전에 `create_all`로 생성되었을 수 있다. 데이터 보존이 필요하지 않은 개발 DB는 파일을 다시 만든 뒤 `upgrade head`를 적용하고, 보존이 필요하면 스키마를 확인한 후에만 `alembic stamp head`를 사용한다.
+
 ## 테스트
 
 ```powershell
