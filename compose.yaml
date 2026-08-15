@@ -22,6 +22,7 @@ services:
     build:
       context: ./backend
     environment:
+      M_JOURNEY_ENVIRONMENT: "${M_JOURNEY_ENVIRONMENT:-development}"
       M_JOURNEY_DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-mjourney}:${POSTGRES_PASSWORD:-mjourney-dev-password}@db:5432/${POSTGRES_DB:-mjourney}"
       M_JOURNEY_AUTO_CREATE_SCHEMA: "false"
       M_JOURNEY_SEED_DEMO_DATA: "${M_JOURNEY_SEED_DEMO_DATA:-true}"

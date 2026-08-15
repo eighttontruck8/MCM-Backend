@@ -58,6 +58,18 @@ docker compose up --build
 
 Compose 파일의 기본 비밀번호와 JWT secret은 로컬 데모 전용이다. 외부 배포 전에는 `POSTGRES_PASSWORD`, `M_JOURNEY_JWT_SECRET`, `M_JOURNEY_DEMO_PASSWORD`, `M_JOURNEY_FRONTEND_BASE_URL`, `M_JOURNEY_CORS_ORIGINS`를 반드시 별도 환경변수로 설정한다. 다중 API 인스턴스 배포에서는 컨테이너마다 migration을 실행하지 말고 배포 단계의 단일 migration job으로 분리한다.
 
+## 운영 CORS 설정
+
+운영 배포에서는 환경과 실제 프론트 origin을 명시한다. 고객 웹과 직원 대시보드가 서로 다른 origin이면 쉼표로 구분한다.
+
+```powershell
+$env:M_JOURNEY_ENVIRONMENT='production'
+$env:M_JOURNEY_FRONTEND_BASE_URL='https://shop.example.com'
+$env:M_JOURNEY_CORS_ORIGINS='https://shop.example.com,https://staff.example.com'
+```
+
+운영 모드는 와일드카드, HTTP, localhost, 경로가 포함된 주소를 거부한다. `M_JOURNEY_FRONTEND_BASE_URL`도 QR 진입 리다이렉트 안전성을 위해 CORS 허용 목록에 포함되어야 한다. 허용 요청 헤더는 `Authorization`, `Content-Type`, `X-Request-ID`이며 응답에서는 `X-Request-ID`, `Retry-After`를 프론트에 노출한다.
+
 ## 테스트
 
 ```powershell
