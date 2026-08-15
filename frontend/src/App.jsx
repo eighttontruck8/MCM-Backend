@@ -1,5 +1,4 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 
 // ==========================================
 // 기존 고객용 화면 컴포넌트 불러오기 (유지)
@@ -44,13 +43,14 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* 1. 로그인 & 회원가입 */}
-        <Route path="/" element={<NfcLoadingPage />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/find-password" element={<FindPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/password-complete" element={<PasswordCompletePage />} />
 
         {/* 2. 체크인 & 오프라인 연동 흐름 */}
+        <Route path="/check-in" element={<NfcLoadingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/checkin-complete" element={<CheckInCompletePage />} />
         <Route path="/shopping-option" element={<ShoppingOptionPage />} />

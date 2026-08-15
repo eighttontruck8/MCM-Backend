@@ -1,9 +1,45 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { createOrResumeCheckin, login } from '../../api/client';
+import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
 import './LoginPage.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    setIsSubmitting(true);
+    try {
+      const tokens = await login(email, password, remember);
+      if (tokens.user.role === 'STAFF') {
+        clearEntryTag();
+        navigate('/staff', { replace: true });
+        return;
+      }
+
+      const entryTag = getEntryTag();
+      if (searchParams.get('next') === 'check-in' && entryTag?.tag_token) {
+        const checkin = await createOrResumeCheckin(entryTag.tag_token);
+        saveCheckin({ ...checkin, entry: entryTag });
+        clearEntryTag();
+        navigate('/checkin-complete', { replace: true });
+        return;
+      }
+      navigate('/main', { replace: true });
+    } catch (error) {
+      setErrorMessage(error.message || '로그인하지 못했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="login-page" data-node-id="17:8" data-name="로그인">
@@ -49,22 +85,23 @@ export default function LoginPage() {
             className="login-page__form"
             data-node-id="17:23"
             data-name="Container"
-            onSubmit={(event) => {
-              event.preventDefault();
-              navigate('/checkin-complete');
-            }}
+            onSubmit={handleSubmit}
           >
             <div className="login-page__field" data-node-id="17:24" data-name="Input">
               <label htmlFor="login-id" className="login-page__label" data-node-id="17:25" data-name="Label">
-                아이디
+                이메일
               </label>
               <input
                 id="login-id"
-                type="text"
+                type="email"
                 className="login-page__input"
-                placeholder="아이디를 입력해주세요"
+                placeholder="customer@example.com"
                 data-node-id="17:26"
                 data-name="Text Input"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
               />
             </div>
 
@@ -79,12 +116,16 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 data-node-id="17:29"
                 data-name="Password Input"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
               />
             </div>
 
             <div className="login-page__meta" data-node-id="17:30" data-name="Container">
               <label className="login-page__remember" data-node-id="17:31">
-                <input type="checkbox" className="login-page__checkbox" />
+                <input type="checkbox" className="login-page__checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
                 <span>자동 로그인</span>
               </label>
               <button
@@ -97,8 +138,10 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <button type="submit" className="login-page__submit" data-node-id="17:33" data-name="Container">
-              로그인
+            {errorMessage && <p className="login-page__error" role="alert">{errorMessage}</p>}
+
+            <button type="submit" className="login-page__submit" data-node-id="17:33" data-name="Container" disabled={isSubmitting}>
+              {isSubmitting ? '로그인 중...' : '로그인'}
             </button>
           </form>
         </div>

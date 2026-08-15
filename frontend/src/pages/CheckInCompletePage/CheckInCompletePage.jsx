@@ -1,13 +1,16 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockCustomers } from '../../mock/mockCustomers';
+import { getAuthUser } from '../../api/client';
+import { getCheckin } from '../../utils/checkinSession';
 import './CheckInCompletePage.css';
 
 const imgIcon = 'https://www.figma.com/api/mcp/asset/b5442dca-6d58-44e0-9fdd-e23966453d03.svg';
 
 export default function CheckInCompletePage() {
   const navigate = useNavigate();
-  const customer = mockCustomers[0];
+  const checkin = getCheckin();
+  const user = getAuthUser();
+  const storeName = checkin?.store?.name ?? checkin?.entry?.store?.name ?? checkin?.store_id ?? 'MCM 매장';
+  const checkedInAt = checkin?.checked_in_at ? new Date(checkin.checked_in_at).toLocaleString('ko-KR') : '방금 전';
 
   const handleNext = () => {
     navigate('/shopping-option');
@@ -31,13 +34,13 @@ export default function CheckInCompletePage() {
 
             <div className="checkin-complete-page__heading" data-node-id="13:1664" data-name="Container">
               <p className="checkin-complete-page__subtitle" data-node-id="13:1666">
-                NFC Check-In Complete
+                QR Check-In Complete
               </p>
               <p className="checkin-complete-page__title" data-node-id="13:1669">
                 체크인 완료
               </p>
               <p className="checkin-complete-page__meta" data-node-id="13:1672">
-                매장명 · 방문 시간
+                {storeName} · {checkedInAt}
               </p>
             </div>
 
@@ -51,7 +54,7 @@ export default function CheckInCompletePage() {
                     ◈
                   </p>
                   <p className="checkin-complete-page__report-text" data-node-id="13:1686">
-                    구매 이력 {customer.visit_count}건 · 관심 상품 {customer.recent_interests.length}건 분석
+                    구매 이력 {checkin?.purchase_count ?? 0}건 · 관심 상품 {checkin?.interest_count ?? 0}건 확인
                   </p>
                 </div>
                 <div className="checkin-complete-page__report-item" data-node-id="13:1689" data-name="Container">
@@ -59,7 +62,7 @@ export default function CheckInCompletePage() {
                     ◈
                   </p>
                   <p className="checkin-complete-page__report-text" data-node-id="13:1694">
-                    {customer.preferred_colors.join(' · ')} · {customer.preferred_fit}
+                    백엔드와 연결된 맞춤 추천을 준비할 수 있습니다.
                   </p>
                 </div>
               </div>
@@ -72,7 +75,7 @@ export default function CheckInCompletePage() {
             </a>
 
             <p className="checkin-complete-page__footer" data-node-id="13:1703">
-              안녕하세요, {customer.name} 고객님
+              안녕하세요, {checkin?.customer?.display_name ?? user?.display_name ?? '고객'}님
             </p>
           </div>
         </div>
