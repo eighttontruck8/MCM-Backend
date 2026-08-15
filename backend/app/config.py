@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from urllib.parse import urlsplit
 
 
@@ -34,6 +34,10 @@ class Settings:
     smtp_from: str | None
     smtp_starttls: bool
     smtp_use_ssl: bool
+    ai_provider: str
+    openai_api_key: str | None = field(repr=False)
+    openai_model: str
+    openai_base_url: str
 
 
 def _normalize_origin(value: str) -> str:
@@ -74,6 +78,12 @@ def load_settings() -> Settings:
 
     origins = os.getenv("M_JOURNEY_CORS_ORIGINS", "http://localhost:5173")
     frontend_base_url = os.getenv("M_JOURNEY_FRONTEND_BASE_URL", "http://localhost:5173").rstrip("/")
+    ai_provider = os.getenv("M_JOURNEY_AI_PROVIDER", "rule_based").strip().lower()
+    if ai_provider not in {"rule_based", "openai"}:
+        raise ValueError("M_JOURNEY_AI_PROVIDER는 rule_based 또는 openai여야 합니다.")
+    openai_api_key = os.getenv("M_JOURNEY_OPENAI_API_KEY") or None
+    if ai_provider == "openai" and not openai_api_key:
+        raise ValueError("OpenAI Provider를 사용할 때 M_JOURNEY_OPENAI_API_KEY가 필요합니다.")
     return Settings(
         environment=environment,
         database_url=os.getenv("M_JOURNEY_DATABASE_URL", "sqlite:///./mjourney.db"),
@@ -101,4 +111,8 @@ def load_settings() -> Settings:
         smtp_from=os.getenv("M_JOURNEY_SMTP_FROM") or None,
         smtp_starttls=os.getenv("M_JOURNEY_SMTP_STARTTLS", "true").lower() == "true",
         smtp_use_ssl=os.getenv("M_JOURNEY_SMTP_USE_SSL", "false").lower() == "true",
+        ai_provider=ai_provider,
+        openai_api_key=openai_api_key,
+        openai_model=os.getenv("M_JOURNEY_OPENAI_MODEL", "gpt-4o-mini"),
+        openai_base_url=os.getenv("M_JOURNEY_OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
     )

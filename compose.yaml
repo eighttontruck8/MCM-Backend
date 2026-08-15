@@ -31,6 +31,10 @@ services:
       M_JOURNEY_FRONTEND_BASE_URL: "${M_JOURNEY_FRONTEND_BASE_URL:-http://localhost:5173}"
       M_JOURNEY_CORS_ORIGINS: "${M_JOURNEY_CORS_ORIGINS:-http://localhost:5173}"
       M_JOURNEY_DEMO_QR_TOKEN: "${M_JOURNEY_DEMO_QR_TOKEN:-qr-demo-seoul-001-7f4d0b9e8c2a}"
+      M_JOURNEY_AI_PROVIDER: "${M_JOURNEY_AI_PROVIDER:-rule_based}"
+      M_JOURNEY_OPENAI_API_KEY: "${M_JOURNEY_OPENAI_API_KEY:-}"
+      M_JOURNEY_OPENAI_MODEL: "${M_JOURNEY_OPENAI_MODEL:-gpt-4o-mini}"
+      M_JOURNEY_OPENAI_BASE_URL: "${M_JOURNEY_OPENAI_BASE_URL:-https://api.openai.com/v1}"
     ports:
       - "${M_JOURNEY_API_PORT:-8000}:8000"
     depends_on:

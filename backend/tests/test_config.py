@@ -70,3 +70,23 @@ def test_production_accepts_https_frontend_whitelist(monkeypatch: pytest.MonkeyP
     settings = load_settings()
 
     assert settings.cors_origins == ("https://shop.example.com", "https://staff.example.com")
+
+
+def test_openai_provider_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("M_JOURNEY_AI_PROVIDER", "openai")
+    monkeypatch.delenv("M_JOURNEY_OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(ValueError, match="M_JOURNEY_OPENAI_API_KEY"):
+        load_settings()
+
+
+def test_openai_provider_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("M_JOURNEY_AI_PROVIDER", "openai")
+    monkeypatch.setenv("M_JOURNEY_OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("M_JOURNEY_OPENAI_MODEL", "gpt-4o-mini")
+
+    settings = load_settings()
+
+    assert settings.ai_provider == "openai"
+    assert settings.openai_api_key == "test-key"
+    assert settings.openai_model == "gpt-4o-mini"

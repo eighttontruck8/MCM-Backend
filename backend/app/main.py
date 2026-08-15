@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import load_settings
 from app.ai import AIProvider, AIService, RuleBasedAIProvider
+from app.ai_openai import OpenAIResponsesProvider
 from app.database import Database
 from app.errors import DomainError
 from app.events import EventBroker, InMemoryEventBroker
@@ -88,8 +89,20 @@ def create_app(
         starttls=settings.smtp_starttls,
         use_ssl=settings.smtp_use_ssl,
     )
+    configured_ai_provider = ai_provider
+    if configured_ai_provider is None:
+        configured_ai_provider = (
+            OpenAIResponsesProvider(
+                api_key=settings.openai_api_key,
+                model=settings.openai_model,
+                base_url=settings.openai_base_url,
+                timeout_seconds=ai_timeout_seconds if ai_timeout_seconds is not None else settings.ai_timeout_seconds,
+            )
+            if settings.ai_provider == "openai"
+            else RuleBasedAIProvider()
+        )
     application.state.ai_service = AIService(
-        ai_provider or RuleBasedAIProvider(),
+        configured_ai_provider,
         timeout_seconds=ai_timeout_seconds if ai_timeout_seconds is not None else settings.ai_timeout_seconds,
         max_retries=ai_max_retries if ai_max_retries is not None else settings.ai_max_retries,
     )

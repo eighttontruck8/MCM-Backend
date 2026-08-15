@@ -144,7 +144,16 @@ Authorization: Bearer <access_token>
 - `POST /api/v1/check-ins/{checkin_id}/lookbook`: 고객용 룩북 생성
 - `GET /api/v1/staff/check-ins/{checkin_id}/guide`: 배정 직원용 응대 가이드 조회
 
-현재는 백엔드 DB의 고객·방문 목적·매장 재고를 입력으로 사용하는 `AIProvider` 인터페이스와 규칙 기반 기본 Provider를 제공한다. 실제 AI 함수나 HTTP 클라이언트가 준비되면 Provider 구현만 교체하면 된다.
+백엔드 DB의 고객·방문 목적·매장 재고를 입력으로 사용하는 `AIProvider` 인터페이스를 제공한다. 기본값은 API 키 없이 동작하는 규칙 기반 Provider이며, 운영 환경에서는 OpenAI Responses API의 Pydantic Structured Outputs Provider를 선택할 수 있다.
+
+```env
+M_JOURNEY_AI_PROVIDER=openai
+M_JOURNEY_OPENAI_API_KEY=환경변수나 Secret Manager에서 주입
+M_JOURNEY_OPENAI_MODEL=gpt-4o-mini
+M_JOURNEY_OPENAI_BASE_URL=https://api.openai.com/v1
+```
+
+API 키를 저장소나 로그에 남기지 않는다. OpenAI 요청은 `store=false`로 전송하며 AI는 추천 후보의 `product_id`와 표현 문장만 생성한다.
 
 AI 출력의 `product_id`는 활성 상품과 매장 재고를 다시 확인하며 가격·이미지·수량은 항상 DB 값으로 덮어쓴다. 타임아웃이나 Provider 장애 시 품절 상품을 제외한 기본 추천을 반환하고, 형식이 잘못된 응답은 원문을 노출하지 않은 채 `502 AI_RESPONSE_INVALID`로 처리한다. 같은 입력의 검증된 결과는 `recommendations` 테이블에서 재사용한다.
 
