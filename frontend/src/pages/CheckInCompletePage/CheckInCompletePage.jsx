@@ -13,6 +13,22 @@ export default function CheckInCompletePage() {
   const checkedInAt = checkin?.checked_in_at ? new Date(checkin.checked_in_at).toLocaleString('ko-KR') : '방금 전';
 
   const handleNext = () => {
+    if (checkin?.status === 'SELF_SHOPPING') {
+      navigate('/lookbook');
+      return;
+    }
+    if (checkin?.status === 'WAITING_FOR_STAFF') {
+      navigate('/visit-info-complete');
+      return;
+    }
+    if (checkin?.status === 'ASSIGNED' || checkin?.status === 'SERVING') {
+      navigate('/staff-assignment');
+      return;
+    }
+    if (checkin?.shopping_mode === 'STAFF_ASSISTED') {
+      navigate('/visit-info');
+      return;
+    }
     navigate('/shopping-option');
   };
   return (

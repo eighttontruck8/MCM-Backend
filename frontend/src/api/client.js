@@ -126,3 +126,17 @@ export async function createOrResumeCheckin(tagToken) {
     throw error;
   }
 }
+
+export function setShoppingMode(checkinId, shoppingMode) {
+  return apiRequest(`/api/v1/check-ins/${encodeURIComponent(checkinId)}/shopping-mode`, {
+    method: 'PATCH',
+    body: JSON.stringify({ shopping_mode: shoppingMode }),
+  });
+}
+
+export function createServiceRequest(checkinId, consent, visitPurpose) {
+  return apiRequest(`/api/v1/check-ins/${encodeURIComponent(checkinId)}/service-request`, {
+    method: 'POST',
+    body: JSON.stringify({ consent, visit_purpose: visitPurpose }),
+  });
+}

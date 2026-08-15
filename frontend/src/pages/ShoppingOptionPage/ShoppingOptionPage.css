@@ -94,6 +94,10 @@
   padding: 32px 28px;
   min-height: 168.881px;
   box-sizing: border-box;
+  border: 0;
+  border-radius: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
 .shopping-option-page__option--primary {
@@ -188,3 +192,19 @@
 .shopping-option-page__option-icon--secondary {
   color: #7a746e;
 }
+
+.shopping-option-page__option:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.shopping-option-page__status,
+.shopping-option-page__error {
+  margin: 16px 0 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.shopping-option-page__status { color: #7a746e; }
+.shopping-option-page__error { color: #b42318; }

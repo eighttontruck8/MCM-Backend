@@ -1,12 +1,33 @@
-import React from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { setShoppingMode } from '../../api/client';
+import { getCheckin, saveCheckin } from '../../utils/checkinSession';
 import './ShoppingOptionPage.css';
 
+// [Frontend-02-'쇼핑 방식 및 직원 응대 요청 연동']
 export default function ShoppingOptionPage() {
   const navigate = useNavigate();
+  const [submittingMode, setSubmittingMode] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleShoppingOptionSelect = () => {
-    navigate('/visit-info');
+  const handleShoppingOptionSelect = async (shoppingMode) => {
+    const checkin = getCheckin();
+    if (!checkin?.checkin_id) {
+      navigate('/check-in', { replace: true });
+      return;
+    }
+
+    setSubmittingMode(shoppingMode);
+    setErrorMessage('');
+    try {
+      const response = await setShoppingMode(checkin.checkin_id, shoppingMode);
+      saveCheckin({ ...checkin, ...response });
+      navigate(shoppingMode === 'PRIVATE' ? '/lookbook' : '/visit-info');
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setSubmittingMode(null);
+    }
   };
   return (
     <div className="shopping-option-page" data-node-id="7:1128" data-name="고객 입력1">
@@ -28,7 +49,7 @@ export default function ShoppingOptionPage() {
             </section>
 
             <div className="shopping-option-page__options" data-node-id="7:1145" data-name="Container">
-              <a href="#" className="shopping-option-page__option shopping-option-page__option--primary" data-node-id="7:1146" data-name="Button" onClick={(e) => { e.preventDefault(); handleShoppingOptionSelect(); }}>
+              <button type="button" disabled={Boolean(submittingMode)} className="shopping-option-page__option shopping-option-page__option--primary" data-node-id="7:1146" data-name="Button" onClick={() => handleShoppingOptionSelect('PRIVATE')}>
                 <div className="shopping-option-page__option-header">
                   <p className="shopping-option-page__option-label" data-node-id="7:1149">
                     Option A
@@ -44,9 +65,9 @@ export default function ShoppingOptionPage() {
                 <span className="shopping-option-page__option-icon" data-node-id="7:1158">
                   ›
                 </span>
-              </a>
+              </button>
 
-              <a href="#" className="shopping-option-page__option shopping-option-page__option--secondary" data-node-id="7:1162" data-name="Button" onClick={(e) => { e.preventDefault(); handleShoppingOptionSelect(); }}>
+              <button type="button" disabled={Boolean(submittingMode)} className="shopping-option-page__option shopping-option-page__option--secondary" data-node-id="7:1162" data-name="Button" onClick={() => handleShoppingOptionSelect('STAFF_ASSISTED')}>
                 <div className="shopping-option-page__option-header">
                   <p className="shopping-option-page__option-label shopping-option-page__option-label--secondary" data-node-id="7:1164">
                     Option B
@@ -62,8 +83,10 @@ export default function ShoppingOptionPage() {
                 <span className="shopping-option-page__option-icon shopping-option-page__option-icon--secondary" data-node-id="7:1173">
                   ›
                 </span>
-              </a>
+              </button>
             </div>
+            {submittingMode && <p className="shopping-option-page__status">쇼핑 방식을 저장하고 있습니다...</p>}
+            {errorMessage && <p className="shopping-option-page__error" role="alert">{errorMessage}</p>}
           </div>
         </div>
       </div>
