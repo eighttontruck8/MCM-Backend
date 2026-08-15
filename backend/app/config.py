@@ -15,6 +15,8 @@ class Settings:
     demo_password: str | None
     ai_timeout_seconds: float
     ai_max_retries: int
+    password_reset_expire_minutes: int
+    expose_password_reset_token: bool
 
 
 def load_settings() -> Settings:
@@ -28,4 +30,6 @@ def load_settings() -> Settings:
         demo_password=os.getenv("M_JOURNEY_DEMO_PASSWORD"),
         ai_timeout_seconds=float(os.getenv("M_JOURNEY_AI_TIMEOUT_SECONDS", "10")),
         ai_max_retries=int(os.getenv("M_JOURNEY_AI_MAX_RETRIES", "1")),
+        password_reset_expire_minutes=int(os.getenv("M_JOURNEY_PASSWORD_RESET_EXPIRE_MINUTES", "15")),
+        expose_password_reset_token=os.getenv("M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN", "false").lower() == "true",
     )

@@ -52,6 +52,20 @@ class LogoutRequest(RefreshRequest):
     pass
 
 
+class PasswordResetRequest(ApiModel):
+    email: str = Field(min_length=3, max_length=255)
+
+
+class PasswordResetConfirmRequest(ApiModel):
+    reset_token: str = Field(min_length=32, max_length=500)
+    new_password: str = Field(min_length=12, max_length=200)
+
+
+class PasswordResetRequestResponse(ApiModel):
+    message: str
+    reset_token: str | None = None
+
+
 class AuthUserResponse(ApiModel):
     id: str
     role: UserRole

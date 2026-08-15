@@ -26,6 +26,7 @@ def create_app(
     ai_timeout_seconds: float | None = None,
     ai_max_retries: int | None = None,
     event_broker: EventBroker | None = None,
+    expose_password_reset_token: bool | None = None,
 ) -> FastAPI:
     settings = load_settings()
     database = Database(database_url or settings.database_url)
@@ -48,6 +49,12 @@ def create_app(
     application.state.jwt_secret = jwt_secret or settings.jwt_secret
     application.state.access_token_expire_minutes = settings.access_token_expire_minutes
     application.state.refresh_token_expire_days = settings.refresh_token_expire_days
+    application.state.password_reset_expire_minutes = settings.password_reset_expire_minutes
+    application.state.expose_password_reset_token = (
+        expose_password_reset_token
+        if expose_password_reset_token is not None
+        else settings.expose_password_reset_token
+    )
     application.state.ai_service = AIService(
         ai_provider or RuleBasedAIProvider(),
         timeout_seconds=ai_timeout_seconds if ai_timeout_seconds is not None else settings.ai_timeout_seconds,

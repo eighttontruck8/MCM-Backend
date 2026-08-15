@@ -56,6 +56,7 @@ def create_token(
     token_type: str,
     expires_delta: timedelta,
     store_id: str | None = None,
+    auth_version: int = 0,
 ) -> tuple[str, str, datetime]:
     now = datetime.now(timezone.utc)
     expires_at = now + expires_delta
@@ -69,6 +70,7 @@ def create_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
         "iss": "m-journey",
+        "ver": auth_version,
     }
     if store_id is not None:
         payload["store_id"] = store_id

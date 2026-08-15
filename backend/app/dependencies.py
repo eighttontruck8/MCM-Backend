@@ -38,7 +38,12 @@ def current_user(
     except (TokenError, ValueError):
         raise DomainError(401, "INVALID_ACCESS_TOKEN", "유효하지 않은 인증 토큰입니다.") from None
     user = db.get(User, payload["sub"])
-    if user is None or not user.is_active or user.role != role.value:
+    if (
+        user is None
+        or not user.is_active
+        or user.role != role.value
+        or payload.get("ver", 0) != user.auth_version
+    ):
         raise DomainError(401, "INVALID_ACCESS_TOKEN", "유효하지 않은 인증 토큰입니다.")
     staff = db.get(Staff, user.id) if role is UserRole.STAFF else None
     return AuthenticatedUser(

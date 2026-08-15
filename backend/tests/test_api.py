@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import time
 
@@ -10,7 +11,8 @@ from starlette.websockets import WebSocketDisconnect
 from sqlalchemy import select
 
 from app.main import create_app
-from app.models import Consent, Recommendation, StaffAssignment
+from app.models import Consent, PasswordResetToken, Recommendation, StaffAssignment
+from app.security import token_hash
 
 TEST_PASSWORD = "test-password-1234"
 
@@ -621,3 +623,143 @@ def test_consent_revocation_requires_owner_and_existing_consent() -> None:
         )
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "CHECKIN_ACCESS_DENIED"
+
+
+def test_password_reset_revokes_existing_tokens_and_is_one_time() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    new_password = "new-test-password-5678"
+    with TestClient(app) as client:
+        old_tokens = login(client)
+        other_tokens = login(client, "customer2@example.com")
+
+        first_request = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        second_request = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        assert first_request.status_code == second_request.status_code == 202
+        first_token = first_request.json()["reset_token"]
+        reset_token = second_request.json()["reset_token"]
+        assert first_token and reset_token and first_token != reset_token
+
+        invalidated = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": first_token, "new_password": new_password},
+        )
+        assert invalidated.status_code == 400
+
+        confirmed = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": new_password},
+        )
+        assert confirmed.status_code == 200
+
+        old_headers = {"Authorization": f"Bearer {old_tokens['access_token']}"}
+        assert client.get("/api/v1/me", headers=old_headers).status_code == 401
+        assert client.post(
+            "/api/v1/auth/refresh",
+            json={"refresh_token": old_tokens["refresh_token"]},
+        ).status_code == 401
+        assert client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        ).status_code == 401
+
+        new_login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": new_password},
+        )
+        assert new_login.status_code == 200
+        assert client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": "another-password-9999"},
+        ).status_code == 400
+
+        other_headers = {"Authorization": f"Bearer {other_tokens['access_token']}"}
+        assert client.get("/api/v1/me", headers=other_headers).status_code == 200
+
+        with client.app.state.database.session_factory() as db:
+            stored = db.scalar(
+                select(PasswordResetToken).where(
+                    PasswordResetToken.token_hash == token_hash(reset_token)
+                )
+            )
+            assert stored.token_hash != reset_token
+            assert len(stored.token_hash) == 64
+            assert stored.used_at is not None
+
+
+def test_password_reset_request_does_not_expose_account_or_token_by_default() -> None:
+    with make_client() as client:
+        existing = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        unknown = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "unknown@example.com"},
+        )
+        assert existing.status_code == unknown.status_code == 202
+        assert existing.json() == unknown.json()
+        assert existing.json()["reset_token"] is None
+
+
+def test_password_reset_rejects_current_password() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    with TestClient(app) as client:
+        requested = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        response = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={
+                "reset_token": requested.json()["reset_token"],
+                "new_password": TEST_PASSWORD,
+            },
+        )
+        assert response.status_code == 409
+        assert response.json()["error"]["code"] == "PASSWORD_REUSE_NOT_ALLOWED"
+
+
+def test_expired_password_reset_token_is_rejected() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+    )
+    with TestClient(app) as client:
+        requested = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        reset_token = requested.json()["reset_token"]
+        with client.app.state.database.session_factory() as db:
+            stored = db.scalar(
+                select(PasswordResetToken).where(
+                    PasswordResetToken.token_hash == token_hash(reset_token)
+                )
+            )
+            stored.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+            db.commit()
+
+        response = client.post(
+            "/api/v1/auth/password-reset/confirm",
+            json={"reset_token": reset_token, "new_password": "new-test-password-5678"},
+        )
+        assert response.status_code == 400
+        assert response.json()["error"]["code"] == "INVALID_PASSWORD_RESET_TOKEN"

@@ -23,7 +23,12 @@ def websocket_user(websocket: WebSocket, token: str) -> AuthenticatedUser | None
         return None
     with websocket.app.state.database.session_factory() as db:
         user = db.get(User, payload["sub"])
-        if user is None or not user.is_active or user.role != role.value:
+        if (
+            user is None
+            or not user.is_active
+            or user.role != role.value
+            or payload.get("ver", 0) != user.auth_version
+        ):
             return None
         staff = db.get(Staff, user.id) if role is UserRole.STAFF else None
         return AuthenticatedUser(

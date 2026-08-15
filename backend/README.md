@@ -121,3 +121,12 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 - 같은 철회를 반복 요청해도 최초 철회 시각을 반환한다.
 
 법적·운영 보존 기간과 기간 만료 후 익명화·삭제 정책은 확정 전이므로 자동 purge는 아직 수행하지 않는다.
+
+## 비밀번호 재설정
+
+- `POST /api/v1/auth/password-reset/request`: 재설정 안내 요청
+- `POST /api/v1/auth/password-reset/confirm`: 일회용 토큰과 새 비밀번호 제출
+
+재설정 토큰은 기본 15분 동안 유효하며 DB에는 SHA-256 해시만 저장한다. 요청 API는 계정 존재 여부와 관계없이 같은 `202` 응답을 반환한다. 비밀번호가 변경되면 해당 사용자의 모든 Refresh Token을 폐기하고 인증 버전을 증가시켜 기존 Access Token과 WebSocket 연결용 토큰도 무효화한다.
+
+실제 메일 Provider가 연결되기 전 로컬 시연에서만 `M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN=true`를 설정해 응답의 `reset_token`을 확인할 수 있다. 운영 환경에서는 반드시 `false`로 유지하고 토큰을 메일 등 별도 채널로 전달해야 한다.
