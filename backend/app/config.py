@@ -27,6 +27,13 @@ class Settings:
     demo_qr_token: str
     auto_create_schema: bool
     seed_demo_data: bool
+    smtp_host: str | None
+    smtp_port: int
+    smtp_username: str | None
+    smtp_password: str | None
+    smtp_from: str | None
+    smtp_starttls: bool
+    smtp_use_ssl: bool
 
 
 def _normalize_origin(value: str) -> str:
@@ -87,4 +94,11 @@ def load_settings() -> Settings:
         demo_qr_token=os.getenv("M_JOURNEY_DEMO_QR_TOKEN", "qr-demo-seoul-001-7f4d0b9e8c2a"),
         auto_create_schema=os.getenv("M_JOURNEY_AUTO_CREATE_SCHEMA", "true").lower() == "true",
         seed_demo_data=os.getenv("M_JOURNEY_SEED_DEMO_DATA", "true").lower() == "true",
+        smtp_host=os.getenv("M_JOURNEY_SMTP_HOST") or None,
+        smtp_port=int(os.getenv("M_JOURNEY_SMTP_PORT", "587")),
+        smtp_username=os.getenv("M_JOURNEY_SMTP_USERNAME") or None,
+        smtp_password=os.getenv("M_JOURNEY_SMTP_PASSWORD") or None,
+        smtp_from=os.getenv("M_JOURNEY_SMTP_FROM") or None,
+        smtp_starttls=os.getenv("M_JOURNEY_SMTP_STARTTLS", "true").lower() == "true",
+        smtp_use_ssl=os.getenv("M_JOURNEY_SMTP_USE_SSL", "false").lower() == "true",
     )

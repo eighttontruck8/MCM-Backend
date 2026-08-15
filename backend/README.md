@@ -200,7 +200,19 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 
 재설정 토큰은 기본 15분 동안 유효하며 DB에는 SHA-256 해시만 저장한다. 요청 API는 계정 존재 여부와 관계없이 같은 `202` 응답을 반환한다. 비밀번호가 변경되면 해당 사용자의 모든 Refresh Token을 폐기하고 인증 버전을 증가시켜 기존 Access Token과 WebSocket 연결용 토큰도 무효화한다.
 
-실제 메일 Provider가 연결되기 전 로컬 시연에서만 `M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN=true`를 설정해 응답의 `reset_token`을 확인할 수 있다. 운영 환경에서는 반드시 `false`로 유지하고 토큰을 메일 등 별도 채널로 전달해야 한다.
+SMTP Provider는 다음 환경변수로 활성화한다. STARTTLS(일반적으로 587)와 SSL(일반적으로 465)은 동시에 켜지 않는다.
+
+```env
+M_JOURNEY_SMTP_HOST=smtp.example.com
+M_JOURNEY_SMTP_PORT=587
+M_JOURNEY_SMTP_USERNAME=...
+M_JOURNEY_SMTP_PASSWORD=...
+M_JOURNEY_SMTP_FROM=no-reply@example.com
+M_JOURNEY_SMTP_STARTTLS=true
+M_JOURNEY_SMTP_USE_SSL=false
+```
+
+SMTP가 설정되지 않은 로컬 시연에서만 `M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN=true`를 사용해 응답의 `reset_token`을 확인할 수 있다. 운영 환경에서는 반드시 `false`로 유지한다. 메일 발송 실패는 계정 존재 여부가 노출되지 않도록 동일한 `202` 응답을 유지하며 서버 오류 로그로만 기록한다.
 
 ## 감사·요청 로그와 Rate Limit
 

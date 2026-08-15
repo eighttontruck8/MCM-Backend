@@ -6,6 +6,7 @@ import json
 import logging
 from pathlib import Path
 import time
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -53,6 +54,14 @@ class SlowAIProvider:
     def generate_staff_guide(self, context: dict) -> object:
         time.sleep(0.05)
         return {}
+
+
+class RecordingPasswordResetMailer:
+    def __init__(self) -> None:
+        self.messages: list[tuple[str, str, int]] = []
+
+    def send_password_reset(self, recipient: str, reset_url: str, expires_minutes: int) -> None:
+        self.messages.append((recipient, reset_url, expires_minutes))
 
 
 def make_client() -> TestClient:
@@ -665,6 +674,33 @@ def test_consent_revocation_requires_owner_and_existing_consent() -> None:
         )
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "CHECKIN_ACCESS_DENIED"
+
+
+def test_password_reset_sends_frontend_link_without_exposing_token() -> None:
+    mailer = RecordingPasswordResetMailer()
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        password_reset_mailer=mailer,
+        frontend_base_url="https://shop.example.com",
+        expose_password_reset_token=False,
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+
+    assert response.status_code == 202
+    assert response.json()["reset_token"] is None
+    assert len(mailer.messages) == 1
+    recipient, reset_url, expires_minutes = mailer.messages[0]
+    parsed = urlsplit(reset_url)
+    assert recipient == "customer@example.com"
+    assert f"{parsed.scheme}://{parsed.netloc}{parsed.path}" == "https://shop.example.com/reset-password"
+    assert len(parse_qs(parsed.query)["token"][0]) >= 32
+    assert expires_minutes == 15
 
 
 def test_password_reset_revokes_existing_tokens_and_is_one_time() -> None:

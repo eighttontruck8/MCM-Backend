@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PasswordCompletePage.css';
 
@@ -43,20 +42,17 @@ export default function PasswordCompletePage() {
               </p>
             </div>
 
-            <a
-              href="#"
+            <button
+              type="button"
               className="password-complete-page__button"
               data-node-id="13:1640"
               data-name="Container"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/login');
-              }}
+              onClick={() => navigate('/login')}
             >
               <span className="password-complete-page__button-text" data-node-id="13:1642">
                 로그인으로 돌아가기
               </span>
-            </a>
+            </button>
           </main>
         </div>
       </div>

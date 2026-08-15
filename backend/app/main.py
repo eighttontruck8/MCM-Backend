@@ -16,6 +16,7 @@ from app.ai import AIProvider, AIService, RuleBasedAIProvider
 from app.database import Database
 from app.errors import DomainError
 from app.events import EventBroker, InMemoryEventBroker
+from app.mail import PasswordResetMailer, build_password_reset_mailer
 from app.routers import auth, catalog, checkins, customer_features, entry, health, recommendations, staff, websockets
 from app.rate_limit import InMemoryRateLimiter
 from app.seed import seed_database
@@ -40,6 +41,7 @@ def create_app(
     demo_qr_token: str | None = None,
     auto_create_schema: bool | None = None,
     seed_demo_data: bool | None = None,
+    password_reset_mailer: PasswordResetMailer | None = None,
 ) -> FastAPI:
     settings = load_settings()
     database = Database(database_url or settings.database_url)
@@ -76,6 +78,15 @@ def create_app(
         expose_password_reset_token
         if expose_password_reset_token is not None
         else settings.expose_password_reset_token
+    )
+    application.state.password_reset_mailer = password_reset_mailer or build_password_reset_mailer(
+        host=settings.smtp_host,
+        port=settings.smtp_port,
+        sender=settings.smtp_from,
+        username=settings.smtp_username,
+        password=settings.smtp_password,
+        starttls=settings.smtp_starttls,
+        use_ssl=settings.smtp_use_ssl,
     )
     application.state.ai_service = AIService(
         ai_provider or RuleBasedAIProvider(),

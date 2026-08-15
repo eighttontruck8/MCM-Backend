@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select, update
@@ -30,6 +32,7 @@ from app.rate_limit import rate_limit_key
 
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
+mailer_logger = logging.getLogger("mjourney.mail")
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[AuthenticatedUser, Depends(current_user)]
 
@@ -173,6 +176,17 @@ def request_password_reset(
         metadata={"account_matched": user is not None and user.is_active},
     )
     db.commit()
+    if raw_token is not None and user is not None:
+        reset_url = f"{request.app.state.frontend_base_url}/reset-password?token={quote(raw_token, safe='')}"
+        try:
+            # [Backend-03-'SMTP 비밀번호 재설정 메일'] 토큰은 메일 본문에만 포함하고 로그에는 남기지 않는다.
+            request.app.state.password_reset_mailer.send_password_reset(
+                user.email,
+                reset_url,
+                request.app.state.password_reset_expire_minutes,
+            )
+        except Exception:
+            mailer_logger.exception("비밀번호 재설정 메일 발송에 실패했습니다.")
     return PasswordResetRequestResponse(
         message="계정이 존재하면 비밀번호 재설정 안내가 전송됩니다.",
         reset_token=(

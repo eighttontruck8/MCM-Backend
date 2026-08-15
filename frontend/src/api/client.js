@@ -104,6 +104,22 @@ export async function login(email, password, remember = false) {
   return tokens;
 }
 
+export function requestPasswordReset(email) {
+  return apiRequest(
+    '/api/v1/auth/password-reset/request',
+    { method: 'POST', body: JSON.stringify({ email }) },
+    false,
+  );
+}
+
+export function confirmPasswordReset(resetToken, newPassword) {
+  return apiRequest(
+    '/api/v1/auth/password-reset/confirm',
+    { method: 'POST', body: JSON.stringify({ reset_token: resetToken, new_password: newPassword }) },
+    false,
+  );
+}
+
 export function fetchEntryTag(tagToken) {
   return apiRequest(`/api/v1/entry-tags/${encodeURIComponent(tagToken)}`, {}, false);
 }
