@@ -23,7 +23,6 @@ import MainRecommendPage from './pages/MainRecommendPage/MainRecommendPage';
 import AllRecommendPage from './pages/AllRecommendPage/AllRecommendPage';
 import LookbookPage from './pages/LookbookPage/LookbookPage';
 import LookDetailPage from './pages/LookDetailPage/LookDetailPage';
-import WishlistEmptyPage from './pages/WishlistEmptyPage/WishlistEmptyPage';
 import WishlistPage from './pages/WishlistPage/WishlistPage';
 import MyPage from './pages/MyPage/MyPage';
 
@@ -63,7 +62,7 @@ function App() {
         <Route path="/all-recommend" element={<AllRecommendPage />} />
         <Route path="/lookbook" element={<LookbookPage />} />
         <Route path="/look-detail" element={<LookDetailPage />} />
-        <Route path="/wishlist-empty" element={<WishlistEmptyPage />} />
+        <Route path="/wishlist-empty" element={<Navigate to="/wishlist" replace />} />
         <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/mypage" element={<MyPage />} />
 

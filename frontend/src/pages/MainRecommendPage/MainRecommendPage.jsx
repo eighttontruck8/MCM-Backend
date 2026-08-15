@@ -1,122 +1,95 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockCustomers } from '../../mock/mockCustomers';
-import { mockProducts } from '../../mock/mockProducts';
+import { fetchMyProfile, fetchRecommendations } from '../../api/client';
+import { useWishlist } from '../../utils/wishlistStorage';
 import './MainRecommendPage.css';
 
+// [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function MainRecommendPage() {
   const navigate = useNavigate();
-  const customer = mockCustomers[0];
-  const recommendedProducts = mockProducts.slice(0, 4);
+  const [customer, setCustomer] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const wishlist = useWishlist();
+
+  useEffect(() => {
+    const timer = window.setTimeout(async () => {
+      try {
+        const [profile, recommendations] = await Promise.all([fetchMyProfile(), fetchRecommendations()]);
+        setCustomer(profile);
+        setProducts(recommendations.items);
+      } catch (error) {
+        setErrorMessage(error.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return (
     <div className="main-recommend-page" data-node-id="13:2846" data-name="메인화면 1">
-      <div className="main-recommend-page__body" data-node-id="13:2847" data-name="Body">
-        <div className="main-recommend-page__app" data-node-id="13:2849" data-name="App">
-          <div className="main-recommend-page__screen" data-node-id="13:2850" data-name="MainScreen">
-            <header className="main-recommend-page__topbar" data-node-id="13:2851">
+      <div className="main-recommend-page__body">
+        <div className="main-recommend-page__app">
+          <div className="main-recommend-page__screen">
+            <header className="main-recommend-page__topbar">
               <div className="main-recommend-page__brand">M·Journey</div>
               <div className="main-recommend-page__checkin">◉ <span>체크인</span></div>
             </header>
 
-            <section className="main-recommend-page__hero" data-node-id="13:2864">
-              <p className="main-recommend-page__greeting" data-node-id="13:2867">안녕하세요, {customer.name} 고객님</p>
-              <h1 className="main-recommend-page__title" data-node-id="13:2869">오늘의 맞춤 추천</h1>
-
-              <div className="main-recommend-page__context-banner" data-node-id="13:2873">
+            <section className="main-recommend-page__hero">
+              <p className="main-recommend-page__greeting">안녕하세요, {customer?.name ?? '고객'}님</p>
+              <h1 className="main-recommend-page__title">오늘의 맞춤 추천</h1>
+              <div className="main-recommend-page__context-banner">
                 <div className="main-recommend-page__context-icon">✦</div>
                 <div className="main-recommend-page__context-text">
-                  <div className="context-label">오늘의 AI 컨텍스트</div>
-                  <div className="context-desc">{customer.recent_interests.join(' · ')}</div>
+                  <div className="context-label">개인화 컨텍스트</div>
+                  <div className="context-desc">{customer?.preferred_style ?? '고객님의 취향을 분석하고 있습니다.'}</div>
                 </div>
-              </div>
-
-              <div className="main-recommend-page__filters">
-                <div className="filter selected">전체</div>
-                <div className="filter">데일리</div>
-                <div className="filter">비즈니스</div>
-                <div className="filter">파티</div>
-                <div className="filter">여행</div>
               </div>
             </section>
 
-            <section className="main-recommend-page__ai-section" data-node-id="13:2908">
+            <section className="main-recommend-page__ai-section">
               <div className="section-header">
-                <button
-                  type="button"
-                  className="section-label section-label--button"
-                >
-                  AI 상품 추천
-                </button>
-                <button
-                  type="button"
-                  className="section-link"
-                  onClick={() => navigate('/all-recommend')}
-                >
-                  전체 보기
-                </button>
+                <div className="section-label">AI 상품 추천</div>
+                <button type="button" className="section-link" onClick={() => navigate('/all-recommend')}>전체 보기</button>
               </div>
-
-              <div className="product-grid">
-                {recommendedProducts.map((product, index) => (
-                  <article key={product.product_id || index} className="product-card" data-node-id="13:2917">
-                    <div className="product-image">{product.brand}</div>
-                    <div className="product-meta">
-                      <div className="brand">{product.brand}</div>
-                      <div className="name">{product.product_name}</div>
-                      <div className="price">{product.price.toLocaleString()}원</div>
-                      <div className="ai-desc">{product.tags[0]}</div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="main-recommend-page__popular" data-node-id="13:3030">
-              <div className="popular-header">
-                <div className="section-label">지금 인기</div>
-                <h2 className="popular-title">최근 인기 상품</h2>
-              </div>
-
-              <div className="popular-grid">
-                <div className="popular-card">
-                  <div className="popular-image">사진 1</div>
-                  <div className="popular-meta">
-                    <div className="brand">브랜드명</div>
-                    <div className="name">상품명 1</div>
-                    <div className="price">가격</div>
-                  </div>
+              {errorMessage && <p className="recommend-state recommend-state--error" role="alert">{errorMessage}</p>}
+              {isLoading ? (
+                <p className="recommend-state">추천 상품을 불러오고 있습니다.</p>
+              ) : products.length ? (
+                <div className="product-grid">
+                  {products.slice(0, 4).map((product) => (
+                    <article key={product.product_id} className="product-card">
+                      <div className="product-image" style={{ backgroundImage: `url(${product.image_url})` }} aria-label={product.name} />
+                      <div className="product-meta">
+                        <div className="brand">{product.line}</div>
+                        <div className="name">{product.name}</div>
+                        <div className="price">{product.price.toLocaleString()}원</div>
+                        <div className="ai-desc">{product.tags[0] ?? product.category}</div>
+                        <button type="button" className="recommend-favorite" disabled={wishlist.pendingProductId === product.product_id} onClick={() => wishlist.toggle(product)}>
+                          {wishlist.isLiked(product.product_id) ? '♥ 찜 해제' : '♡ 찜하기'}
+                        </button>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-                <div className="popular-card">
-                  <div className="popular-image">사진 2</div>
-                  <div className="popular-meta">
-                    <div className="brand">브랜드명</div>
-                    <div className="name">상품명 2</div>
-                    <div className="price">가격</div>
-                  </div>
-                </div>
-                <div className="popular-card">
-                  <div className="popular-image">사진 3</div>
-                  <div className="popular-meta">
-                    <div className="brand">브랜드명</div>
-                    <div className="name">상품명 3</div>
-                    <div className="price">가격</div>
-                  </div>
-                </div>
-              </div>
+              ) : (
+                <p className="recommend-state">아직 생성된 추천이 없습니다. 룩북을 먼저 만들어보세요.</p>
+              )}
             </section>
 
             <footer className="main-recommend-page__cta">
               <div className="cta-banner">나를 위한 룩북
-                <button className="cta-button" onClick={() => navigate('/lookbook')}>룩북 보러가기</button>
+                <button type="button" className="cta-button" onClick={() => navigate('/lookbook')}>룩북 보러가기</button>
               </div>
             </footer>
-
             <nav className="main-recommend-page__nav">
-              <div className="nav-item" onClick={() => navigate('/main')} style={{cursor: 'pointer'}}>홈</div>
-              <div className="nav-item" onClick={() => navigate('/lookbook')} style={{cursor: 'pointer'}}>룩북</div>
-              <div className="nav-item" onClick={() => navigate('/wishlist')} style={{cursor: 'pointer'}}>찜</div>
-              <div className="nav-item" onClick={() => navigate('/mypage')} style={{cursor: 'pointer'}}>MY</div>
+              <button type="button" className="nav-item" onClick={() => navigate('/main')}>홈</button>
+              <button type="button" className="nav-item" onClick={() => navigate('/lookbook')}>룩북</button>
+              <button type="button" className="nav-item" onClick={() => navigate('/wishlist')}>찜</button>
+              <button type="button" className="nav-item" onClick={() => navigate('/mypage')}>MY</button>
             </nav>
           </div>
         </div>

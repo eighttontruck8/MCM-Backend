@@ -1,87 +1,50 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { addWishlistItem, fetchWishlist, removeWishlistItem } from '../api/client';
 
-export const WISHLIST_STORAGE_KEY = 'mjourney_wishlist_products';
-export const WISHLIST_EVENT = 'mjourney_wishlist_changed';
-
-export function readWishlist() {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const stored = window.localStorage.getItem(WISHLIST_STORAGE_KEY);
-    if (!stored) return [];
-
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-export function writeWishlist(items) {
-  if (typeof window === 'undefined') return [];
-
-  const nextItems = Array.isArray(items) ? items : [];
-  window.localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(nextItems));
-  window.dispatchEvent(new CustomEvent(WISHLIST_EVENT, { detail: nextItems }));
-  return nextItems;
-}
-
-export function normalizeProduct(product) {
-  if (!product || typeof product !== 'object') return null;
-
-  return {
-    product_id: product.product_id ?? product.id ?? String(Date.now()),
-    brand: product.brand ?? 'M·JOURNEY',
-    product_name: product.product_name ?? product.name ?? '상품',
-    price: product.price ?? 0,
-    tags: Array.isArray(product.tags) ? product.tags : [],
-    category: product.category ?? '기타',
-    stock_status: product.stock_status ?? 'in_stock',
-  };
-}
-
-export function toggleWishlistItem(product) {
-  const normalized = normalizeProduct(product);
-  if (!normalized) return readWishlist();
-
-  const current = readWishlist();
-  const exists = current.some((item) => item.product_id === normalized.product_id);
-
-  const nextItems = exists
-    ? current.filter((item) => item.product_id !== normalized.product_id)
-    : [...current, normalized];
-
-  return writeWishlist(nextItems);
-}
-
-export function isProductLiked(productId) {
-  const wishlist = readWishlist();
-  return wishlist.some((item) => item.product_id === productId);
-}
-
+// [Frontend-04-'추천 및 고객 활동 REST 연동']
 export function useWishlist() {
-  const [items, setItems] = useState(() => readWishlist());
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pendingProductId, setPendingProductId] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  useEffect(() => {
-    const sync = () => setItems(readWishlist());
-
-    window.addEventListener(WISHLIST_EVENT, sync);
-    window.addEventListener('storage', sync);
-
-    return () => {
-      window.removeEventListener(WISHLIST_EVENT, sync);
-      window.removeEventListener('storage', sync);
-    };
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetchWishlist();
+      setItems(response.items);
+      setErrorMessage('');
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const toggle = (product) => {
-    const nextItems = toggleWishlistItem(product);
-    setItems(nextItems);
+  useEffect(() => {
+    const timer = window.setTimeout(refresh, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
+
+  const isLiked = (productId) => items.some((item) => item.product_id === productId);
+  const toggle = async (product) => {
+    const productId = product?.product_id;
+    if (!productId || pendingProductId) return;
+    setPendingProductId(productId);
+    setErrorMessage('');
+    try {
+      if (isLiked(productId)) {
+        await removeWishlistItem(productId);
+        setItems((current) => current.filter((item) => item.product_id !== productId));
+      } else {
+        const added = await addWishlistItem(productId);
+        setItems((current) => [added, ...current.filter((item) => item.product_id !== productId)]);
+      }
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setPendingProductId(null);
+    }
   };
 
-  return {
-    items,
-    isLiked: (productId) => items.some((item) => item.product_id === productId),
-    toggle,
-  };
+  return { items, isLiked, toggle, isLoading, pendingProductId, errorMessage, refresh };
 }

@@ -5,6 +5,10 @@
   justify-content: center;
 }
 
+.product-image { background-position: center; background-size: cover; }
+.recommend-list-state { padding: 24px; color: #7a746e; font-size: 13px; }
+.product-row__fav:disabled { cursor: wait; opacity: 0.6; }
+
 .all-recommend-page__body {
   width: 100%;
   max-width: 403px;

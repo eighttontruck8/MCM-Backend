@@ -6,6 +6,12 @@
   justify-content: center;
 }
 
+.lookbook-card { border: 0; padding: 0; text-align: left; cursor: pointer; }
+.lookbook-card__image { background-position: center; background-size: cover; }
+.lookbook-intro__copy, .lookbook-state { color: #7a746e; font-size: 12px; line-height: 1.6; }
+.lookbook-state { padding: 24px; }
+.lookbook-state--error { color: #b42318; }
+
 .lookbook-page__container {
   width: 100%;
   max-width: 430px;

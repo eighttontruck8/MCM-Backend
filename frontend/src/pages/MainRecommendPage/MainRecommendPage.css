@@ -7,6 +7,12 @@
   box-sizing: border-box;
 }
 
+.product-image { background-position: center; background-size: cover; }
+.recommend-state { padding: 24px 0; color: #7a746e; font-family: 'DM Sans', sans-serif; font-size: 13px; }
+.recommend-state--error { color: #b42318; }
+.recommend-favorite { margin-top: 10px; border: 0; background: transparent; color: #7a746e; cursor: pointer; font-size: 11px; }
+.main-recommend-page__nav .nav-item { border: 0; background: transparent; cursor: pointer; }
+
 .main-recommend-page__body {
   width: 100%;
   max-width: 404px;

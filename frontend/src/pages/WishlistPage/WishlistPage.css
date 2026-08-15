@@ -6,6 +6,9 @@
   box-sizing: border-box;
 }
 
+.wishlist-item__img { background-position: center; background-size: cover; }
+.fav:disabled { cursor: wait; opacity: 0.6; }
+
 .wishlist-page__container {
   width: 100%;
   max-width: 430px;

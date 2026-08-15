@@ -6,6 +6,8 @@
   box-sizing: border-box;
 }
 
+.my-page__state { margin: 24px; color: #7a746e; font-size: 13px; }
+
 .my-page__container {
   width: 100%;
   max-width: 430px;

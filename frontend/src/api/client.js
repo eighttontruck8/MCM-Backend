@@ -169,3 +169,31 @@ export function openRealtime(path) {
   url.searchParams.set('token', accessToken);
   return new WebSocket(url);
 }
+
+export function fetchMyProfile() {
+  return apiRequest('/api/v1/customers/me');
+}
+
+export function fetchRecommendations() {
+  return apiRequest('/api/v1/customers/me/recommendations');
+}
+
+export function createLookbook(checkinId) {
+  return apiRequest(`/api/v1/check-ins/${encodeURIComponent(checkinId)}/lookbook`, { method: 'POST' });
+}
+
+export function fetchWishlist() {
+  return apiRequest('/api/v1/customers/me/wishlist');
+}
+
+export function addWishlistItem(productId) {
+  return apiRequest(`/api/v1/customers/me/wishlist/${encodeURIComponent(productId)}`, { method: 'POST' });
+}
+
+export function removeWishlistItem(productId) {
+  return apiRequest(`/api/v1/customers/me/wishlist/${encodeURIComponent(productId)}`, { method: 'DELETE' });
+}
+
+export function fetchPurchases() {
+  return apiRequest('/api/v1/customers/me/purchases');
+}
