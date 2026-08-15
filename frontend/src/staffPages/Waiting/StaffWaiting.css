@@ -45,6 +45,11 @@
   color: #111111;
 }
 
+.waiting-connection {
+  font-size: 0.72rem;
+  color: #666;
+}
+
 .waiting-stage {
   position: relative;
   display: flex;
@@ -100,6 +105,19 @@
   background: transparent;
   padding: 22px 18px;
   box-sizing: border-box;
+}
+
+.waiting-queue-list {
+  display: grid;
+  width: 100%;
+  gap: 14px;
+}
+
+.waiting-error {
+  max-width: 430px;
+  margin: 0 0 12px;
+  color: #b42318;
+  font-size: 0.8rem;
 }
 
 .waiting-empty-message {
@@ -283,6 +301,11 @@
   font-size: 0.9rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.waiting-cta:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 @media (max-width: 480px) {

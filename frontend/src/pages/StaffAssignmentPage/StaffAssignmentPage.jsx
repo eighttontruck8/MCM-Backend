@@ -1,9 +1,11 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCheckin } from '../../utils/checkinSession';
 import './StaffAssignmentPage.css';
 
 export default function StaffAssignmentPage() {
   const navigate = useNavigate();
+  const checkin = getCheckin();
+  const staff = checkin?.assigned_staff ?? checkin?.staff;
 
   const handleNavigateToMain = () => {
     navigate('/main');
@@ -27,10 +29,10 @@ export default function StaffAssignmentPage() {
                 담당 직원 배정 완료
               </p>
               <p className="staff-assignment-page__name" data-node-id="13:1802">
-                담당 직원명
+                {staff?.name ?? '담당 직원'}
               </p>
               <p className="staff-assignment-page__role" data-node-id="13:1805">
-                직책 · 경력
+                {staff?.title ?? 'Client Advisor'} · 경력 {staff?.experience_years ?? 0}년
               </p>
             </div>
 
@@ -74,11 +76,11 @@ export default function StaffAssignmentPage() {
               </div>
             </div>
 
-            <a href="#" className="staff-assignment-page__button" data-node-id="13:1844" data-name="Button" onClick={(e) => { e.preventDefault(); handleNavigateToMain(); }}>
+            <button type="button" className="staff-assignment-page__button" data-node-id="13:1844" data-name="Button" onClick={handleNavigateToMain}>
               <span className="staff-assignment-page__button-text" data-node-id="13:1845">
                 메인화면으로
               </span>
-            </a>
+            </button>
           </div>
         </div>
       </div>

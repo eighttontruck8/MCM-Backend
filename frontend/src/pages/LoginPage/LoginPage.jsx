@@ -21,7 +21,7 @@ export default function LoginPage() {
       const tokens = await login(email, password, remember);
       if (tokens.user.role === 'STAFF') {
         clearEntryTag();
-        navigate('/staff', { replace: true });
+        navigate('/staff/waiting', { replace: true });
         return;
       }
 

@@ -140,3 +140,32 @@ export function createServiceRequest(checkinId, consent, visitPurpose) {
     body: JSON.stringify({ consent, visit_purpose: visitPurpose }),
   });
 }
+
+export function fetchStaffVisits(storeId, status = 'WAITING_FOR_STAFF') {
+  const query = new URLSearchParams({ status });
+  return apiRequest(`/api/v1/staff/stores/${encodeURIComponent(storeId)}/visits?${query}`);
+}
+
+export function claimStaffVisit(checkinId) {
+  return apiRequest(`/api/v1/staff/check-ins/${encodeURIComponent(checkinId)}/claim`, { method: 'POST' });
+}
+
+export function updateStaffVisitStatus(checkinId, status) {
+  return apiRequest(`/api/v1/staff/check-ins/${encodeURIComponent(checkinId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function fetchStaffCustomer(customerId) {
+  return apiRequest(`/api/v1/staff/customers/${encodeURIComponent(customerId)}`);
+}
+
+export function openRealtime(path) {
+  const accessToken = getAccessToken();
+  if (!accessToken) throw new Error('실시간 연결에 필요한 로그인이 만료되었습니다.');
+  const url = new URL(`${API_BASE_URL}${path}`);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.searchParams.set('token', accessToken);
+  return new WebSocket(url);
+}

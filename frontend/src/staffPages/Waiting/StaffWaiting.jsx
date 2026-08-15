@@ -1,196 +1,164 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  readStaffVisitState,
-  STAFF_CHECKIN_EVENT,
-  STAFF_CHECKIN_STORAGE_KEY,
-  STAFF_VISIT_STATE_EVENT,
-  STAFF_VISIT_STATE_KEY,
-  markStaffVisitServing,
-} from '../../utils/staffCheckinSignal';
+  claimStaffVisit,
+  fetchStaffCustomer,
+  fetchStaffVisits,
+  getAuthUser,
+  openRealtime,
+  updateStaffVisitStatus,
+} from '../../api/client';
+import { saveStaffActiveVisit } from '../../utils/staffSession';
 import './StaffWaiting.css';
 
-const toolbarIcons = ['✎', '◌', '⌂', '#', '❒', '▢', '◧', '⌁', '◫', '⟡'];
-
-const defaultCustomer = {
-  name: '김** 고객',
-  totalVisits: 28,
-  phone: '010-****-3374',
-  visitDate: '2026년 8월 13일',
+const PURPOSE_LABELS = {
+  GIFT: '선물 구매',
+  SEASON_UPDATE: '시즌 코디 업데이트',
+  SPECIAL_EVENT: '특별 행사 준비',
+  BUSINESS_TRIP: '출장 준비',
+  FREE_SHOPPING: '자유 쇼핑',
+  OTHER: '기타',
 };
 
+// [Frontend-03-'직원 대기열 및 실시간 배정 연동']
 export default function StaffWaiting() {
   const navigate = useNavigate();
-  const [showAlert, setShowAlert] = useState(false);
-  const [visitState, setVisitState] = useState(() => readStaffVisitState());
+  const staffUser = getAuthUser();
+  const storeId = staffUser?.store_id;
+  const [visits, setVisits] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [claimingId, setClaimingId] = useState(null);
+  const [connectionState, setConnectionState] = useState('연결 중');
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const customer = visitState.customer ?? defaultCustomer;
-  const customerName = customer.name ?? defaultCustomer.name;
-  const customerVisits = customer.visit_count ?? customer.totalVisits ?? defaultCustomer.totalVisits;
-  const customerPhone = customer.phone ?? defaultCustomer.phone;
-  const customerVisitDate = customer.visitDate ?? new Date(visitState.updatedAt ?? Date.now()).toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const wishlist = visitState.wishlist ?? [];
-  const recentlyViewed = visitState.recentlyViewed ?? [];
-  const purchaseHistory = visitState.purchaseHistory ?? [];
+  const syncQueue = useCallback(async () => {
+    if (!storeId) return;
+    try {
+      const response = await fetchStaffVisits(storeId);
+      setVisits(response.items);
+      setErrorMessage('');
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [storeId]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (staffUser?.role !== 'STAFF' || !storeId) {
+      navigate('/login', { replace: true });
+      return undefined;
+    }
 
-    const syncStateFromStorage = () => {
-      const nextState = readStaffVisitState();
-      setVisitState(nextState);
-      setShowAlert(nextState.status !== 'waiting');
-    };
+    let socket;
+    let reconnectTimer;
+    let disposed = false;
 
-    syncStateFromStorage();
-
-    const handleStorageChange = (event) => {
-      if (
-        event.key === STAFF_CHECKIN_STORAGE_KEY ||
-        event.key === STAFF_VISIT_STATE_KEY ||
-        event.type === 'storage'
-      ) {
-        syncStateFromStorage();
+    const connect = () => {
+      if (disposed) return;
+      try {
+        socket = openRealtime(`/api/v1/ws/staff/stores/${encodeURIComponent(storeId)}`);
+      } catch (error) {
+        setConnectionState('연결 실패');
+        setErrorMessage(error.message);
+        return;
       }
+      socket.onopen = () => setConnectionState('실시간 연결됨');
+      socket.onmessage = (message) => {
+        const payload = JSON.parse(message.data);
+        if (payload.event === 'PING') {
+          socket.send(JSON.stringify({ event: 'PING' }));
+          return;
+        }
+        if (['VISIT_WAITING', 'STAFF_ASSIGNED', 'VISIT_COMPLETED'].includes(payload.event)) syncQueue();
+      };
+      socket.onclose = () => {
+        if (disposed) return;
+        setConnectionState('재연결 중');
+        reconnectTimer = window.setTimeout(async () => {
+          await syncQueue();
+          connect();
+        }, 2000);
+      };
+      socket.onerror = () => socket.close();
     };
 
-    const handleCustomEvent = () => {
-      syncStateFromStorage();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener(STAFF_CHECKIN_EVENT, handleCustomEvent);
-    window.addEventListener(STAFF_VISIT_STATE_EVENT, handleCustomEvent);
-
+    reconnectTimer = window.setTimeout(() => syncQueue().finally(connect), 0);
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener(STAFF_CHECKIN_EVENT, handleCustomEvent);
-      window.removeEventListener(STAFF_VISIT_STATE_EVENT, handleCustomEvent);
+      disposed = true;
+      window.clearTimeout(reconnectTimer);
+      socket?.close();
     };
-  }, []);
+  }, [navigate, staffUser?.role, storeId, syncQueue]);
+
+  const handleClaim = async (visit) => {
+    setClaimingId(visit.checkin_id);
+    setErrorMessage('');
+    try {
+      const assignment = await claimStaffVisit(visit.checkin_id);
+      const profile = await fetchStaffCustomer(visit.customer_id);
+      const serving = await updateStaffVisitStatus(visit.checkin_id, 'SERVING');
+      saveStaffActiveVisit({ visit, profile, assignment: { ...assignment, ...serving } });
+      navigate('/staff');
+    } catch (error) {
+      setErrorMessage(error.message);
+      await syncQueue();
+    } finally {
+      setClaimingId(null);
+    }
+  };
 
   return (
-    <div className={`staff-waiting-page ${showAlert ? 'staff-waiting-page--checked-in' : ''}`}>
+    <div className={`staff-waiting-page ${visits.length ? 'staff-waiting-page--checked-in' : ''}`}>
       <header className="waiting-topbar">
         <div className="waiting-brand-box">
-          <div className="waiting-brand-icon" aria-hidden="true">
-            ⌂
-          </div>
+          <div className="waiting-brand-icon" aria-hidden="true">⌂</div>
           <span className="waiting-brand-name">M-Journey</span>
         </div>
+        <span className="waiting-connection">{connectionState}</span>
       </header>
 
       <main className="waiting-stage">
-        <div className="waiting-stage-label">{showAlert ? '체크인한 고객이 있습니다.' : '대기중'}</div>
-
-        <div className="waiting-board" aria-label="waiting board">
-          <div className="waiting-board-header">
-            <div className="waiting-board-flag">M JOURNEY</div>
-            <span className="waiting-board-time">00:00</span>
-          </div>
-
+        <div className="waiting-stage-label">대기 고객 {visits.length}명</div>
+        {errorMessage && <p className="waiting-error" role="alert">{errorMessage}</p>}
+        <div className="waiting-board" aria-label="직원 응대 대기열">
           <div className="waiting-board-body">
-            {showAlert ? (
-              <div className="waiting-alert-card" aria-live="polite">
-                <div className="waiting-alert-header">
-                  <h2 className="waiting-alert-title">체크인 완료 고객</h2>
-                  <span className="waiting-alert-badge">완료</span>
-                </div>
-
-                <div className="waiting-alert-body">
-                  <div className="waiting-customer-row">
-                    <div className="waiting-avatar">{customerName.charAt(0) || '김'}</div>
-                    <div className="waiting-customer-info">
-                      <p className="waiting-customer-name">{customerName}</p>
-                      <p className="waiting-customer-sub">총 {customerVisits}회 방문</p>
-                    </div>
-                  </div>
-
-                  <div className="waiting-detail-grid">
-                    <div className="waiting-detail-box">
-                      <span className="waiting-detail-label">연락처</span>
-                      <div className="waiting-detail-value">{customerPhone}</div>
-                    </div>
-
-                    <div className="waiting-detail-box">
-                      <span className="waiting-detail-label">방문 일시</span>
-                      <div className="waiting-detail-value">{customerVisitDate}</div>
-                    </div>
-                  </div>
-
-                  <div className="waiting-transfer-block">
-                    <div className="waiting-transfer-section">
-                      <span className="waiting-transfer-label">최근 구매 이력</span>
-                      <div className="waiting-transfer-list">
-                        {purchaseHistory.slice(0, 2).map((item) => (
-                          <span key={item.id ?? item.product} className="waiting-transfer-pill">
-                            {item.product}
-                          </span>
-                        ))}
+            {isLoading ? (
+              <div className="waiting-empty-message">대기열을 불러오고 있습니다.</div>
+            ) : visits.length ? (
+              <div className="waiting-queue-list">
+                {visits.map((visit) => (
+                  <article className="waiting-alert-card" key={visit.checkin_id}>
+                    <div className="waiting-alert-body">
+                      <div className="waiting-customer-row">
+                        <div className="waiting-avatar">{visit.masked_name.charAt(0)}</div>
+                        <div className="waiting-customer-info">
+                          <p className="waiting-customer-name">{visit.masked_name} 고객</p>
+                          <p className="waiting-customer-sub">{visit.membership} 회원</p>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="waiting-transfer-section">
-                      <span className="waiting-transfer-label">관심 상품</span>
-                      <div className="waiting-transfer-list">
-                        {wishlist.slice(0, 3).map((item) => (
-                          <span key={item} className="waiting-transfer-pill">
-                            {item}
-                          </span>
-                        ))}
+                      <div className="waiting-detail-grid">
+                        <div className="waiting-detail-box">
+                          <span className="waiting-detail-label">방문 목적</span>
+                          <div className="waiting-detail-value">{PURPOSE_LABELS[visit.visit_purpose] ?? visit.visit_purpose}</div>
+                        </div>
+                        <div className="waiting-detail-box">
+                          <span className="waiting-detail-label">대기 시작</span>
+                          <div className="waiting-detail-value">{new Date(visit.waiting_since).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
                       </div>
+                      <button type="button" disabled={Boolean(claimingId)} className="waiting-cta" onClick={() => handleClaim(visit)}>
+                        {claimingId === visit.checkin_id ? '배정 처리 중...' : '고객 응대 시작하기'}
+                      </button>
                     </div>
-
-                    <div className="waiting-transfer-section">
-                      <span className="waiting-transfer-label">최근 본 상품</span>
-                      <div className="waiting-transfer-list">
-                        {recentlyViewed.slice(0, 2).map((item) => (
-                          <span key={item.product_id} className="waiting-transfer-pill">
-                            {item.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="waiting-cta"
-                    onClick={() => {
-                      const nextState = markStaffVisitServing({
-                        customer,
-                        wishlist,
-                        recentlyViewed,
-                        purchaseHistory,
-                      });
-                      setVisitState(nextState);
-                      setShowAlert(nextState.status !== 'waiting');
-                      navigate('/staff');
-                    }}
-                  >
-                    고객 응대 시작하기
-                  </button>
-                </div>
+                  </article>
+                ))}
               </div>
             ) : (
-              <>
-                <div className="waiting-status-pill">◌</div>
-
-                <div className="waiting-empty-message">
-                  <div className="waiting-message-row">
-                    <span className="waiting-message-dot" aria-hidden="true" />
-                    <span className="waiting-message-text">현재 체크인된 고객이 없습니다.</span>
-                  </div>
-                </div>
-              </>
+              <div className="waiting-empty-message">현재 직원 응대를 기다리는 고객이 없습니다.</div>
             )}
           </div>
         </div>
-
       </main>
     </div>
   );

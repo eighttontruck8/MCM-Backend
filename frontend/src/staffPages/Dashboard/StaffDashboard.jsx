@@ -1,10 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  STAFF_CHECKIN_EVENT,
-  STAFF_VISIT_STATE_EVENT,
-  readStaffVisitState,
-} from '../../utils/staffCheckinSignal';
+import { getStaffActiveVisit } from '../../utils/staffSession';
 import './StaffDashboard.css';
 
 const customerList = [
@@ -71,60 +67,30 @@ export default function StaffDashboard() {
   const [selectedCustomerId, setSelectedCustomerId] = useState('C001');
   const [activeTab, setActiveTab] = useState('AI 분석');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [liveCustomer, setLiveCustomer] = useState(() => readStaffVisitState().customer);
-
-  useEffect(() => {
-    const syncLiveCustomer = () => {
-      const nextState = readStaffVisitState();
-      setLiveCustomer(nextState.customer);
-
-      if (nextState.customer?.customer_id) {
-        setSelectedCustomerId(nextState.customer.customer_id);
-      }
-    };
-
-    syncLiveCustomer();
-
-    const handleStorageSync = () => syncLiveCustomer();
-
-    window.addEventListener('storage', handleStorageSync);
-    window.addEventListener(STAFF_CHECKIN_EVENT, handleStorageSync);
-    window.addEventListener(STAFF_VISIT_STATE_EVENT, handleStorageSync);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageSync);
-      window.removeEventListener(STAFF_CHECKIN_EVENT, handleStorageSync);
-      window.removeEventListener(STAFF_VISIT_STATE_EVENT, handleStorageSync);
-    };
-  }, []);
+  const activeVisit = getStaffActiveVisit();
+  const liveCustomer = activeVisit?.profile;
 
   const selectedCustomer = useMemo(() => {
     if (liveCustomer && typeof liveCustomer === 'object') {
       return {
         ...customerList[0],
         id: liveCustomer.customer_id ?? 'C001',
-        name: liveCustomer.name ?? '김**',
-        age: liveCustomer.age ?? 34,
-        gender: liveCustomer.gender ?? '여성',
+        name: liveCustomer.masked_name ?? '고객',
+        age: null,
+        gender: null,
         totalVisits: liveCustomer.visit_count ?? 4,
         status: '응대중',
-        styleProfile: liveCustomer.style_tags?.join(', ') ?? '미니멀 럭셔리',
-        preferredColors: liveCustomer.preferred_colors ?? ['블랙', '화이트', '베이지'],
-        preferredFit: liveCustomer.preferred_fit ?? '오버사이즈',
-        recentInterest: liveCustomer.recent_interests ?? ['가을 아우터'],
-        lastVisit: liveCustomer.visitDate ?? '2026.08.14',
-        note: '체크인 시점에 전달된 고객 응대 정보를 반영한 프로필입니다.',
+        styleProfile: liveCustomer.preferred_style ?? '공유된 스타일 정보 없음',
+        preferredColors: liveCustomer.preferred_colors ?? [],
+        preferredFit: '직원 상담 시 확인',
+        recentInterest: liveCustomer.liked_product_ids ?? [],
+        lastVisit: activeVisit?.visit?.waiting_since ? new Date(activeVisit.visit.waiting_since).toLocaleDateString('ko-KR') : '오늘',
+        note: `방문 목적: ${liveCustomer.visit_purpose ?? activeVisit?.visit?.visit_purpose ?? '미입력'}`,
       };
     }
 
     return customerList.find((customer) => customer.id === selectedCustomerId) ?? customerList[0];
-  }, [liveCustomer, selectedCustomerId]);
-
-  const getStatusStyle = (status) => ({
-    background: status === '응대중' ? 'rgba(118, 171, 133, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-    color: status === '응대중' ? '#8ad8a8' : '#d8c6a3',
-    border: status === '응대중' ? '1px solid rgba(119, 211, 153, 0.38)' : '1px solid rgba(255,255,255,0.08)',
-  });
+  }, [activeVisit?.visit?.visit_purpose, activeVisit?.visit?.waiting_since, liveCustomer, selectedCustomerId]);
 
   return (
     <div className="staff-dashboard-page">
@@ -167,9 +133,9 @@ export default function StaffDashboard() {
                     <p className="staff-dashboard-customer-id">{customer.id}</p>
 
                     <div className="staff-dashboard-info-row">
-                      <span>{customer.age}세</span>
-                      <span className="staff-dashboard-dot" />
-                      <span>{customer.gender}</span>
+                      {customer.age && <span>{customer.age}세</span>}
+                      {customer.age && customer.gender && <span className="staff-dashboard-dot" />}
+                      {customer.gender && <span>{customer.gender}</span>}
                     </div>
 
                     <div className="staff-dashboard-info-row">
@@ -207,8 +173,8 @@ export default function StaffDashboard() {
                   <p className="staff-dashboard-profile-name">{selectedCustomer.name}</p>
 
                   <div className="staff-dashboard-profile-info">
-                    <span className="staff-dashboard-info-pill">{selectedCustomer.age}세</span>
-                    <span className="staff-dashboard-info-pill">{selectedCustomer.gender}</span>
+                    {selectedCustomer.age && <span className="staff-dashboard-info-pill">{selectedCustomer.age}세</span>}
+                    {selectedCustomer.gender && <span className="staff-dashboard-info-pill">{selectedCustomer.gender}</span>}
                     <span className="staff-dashboard-info-pill">총 {selectedCustomer.totalVisits}회 방문</span>
                     <span className="staff-dashboard-info-pill">최근 방문 {selectedCustomer.lastVisit}</span>
                   </div>

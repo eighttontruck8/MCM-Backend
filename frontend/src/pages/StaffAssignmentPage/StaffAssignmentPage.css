@@ -201,6 +201,7 @@
   background-color: #c9a882;
   text-decoration: none;
   cursor: pointer;
+  border: 0;
 }
 
 .staff-assignment-page__button-text {
