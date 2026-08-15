@@ -1,0 +1,93 @@
+{
+  "customers": [
+    {
+      "id": "C001",
+      "name": "김서연",
+      "age": 29,
+      "gender": "여성",
+      "membership": "VIP",
+      "visit_count": 5,
+      "preferred_colors": ["블랙", "코냑"],
+      "preferred_style": "미니멀 비즈니스",
+      "purchase_history": [
+        {"product": "비세토스 레더 믹스 다이아몬드 토트백", "date": "2025-11-02", "category": "토트백"},
+        {"product": "아렌 스몰 숄더백", "date": "2025-06-15", "category": "숄더백"}
+      ],
+      "recently_viewed": ["스타크 사이드 스터드 비세토스 백팩", "비세토스 위켄더 백"],
+      "liked_products": ["스타크 사이드 스터드 비세토스 백팩"],
+      "upcoming_schedule": "다음 주 싱가포르 출장",
+      "notes": "노트북 수납 가능한 비즈니스 백 반복 조회"
+    },
+    {
+      "id": "C002",
+      "name": "이지훈",
+      "age": 31,
+      "gender": "남성",
+      "membership": "일반",
+      "visit_count": 2,
+      "preferred_colors": ["블랙"],
+      "preferred_style": "캐주얼 스트리트",
+      "purchase_history": [
+        {"product": "스타크 사이드 스터드 비세토스 백팩", "date": "2025-09-20", "category": "백팩"}
+      ],
+      "recently_viewed": ["트레이시 비세토스 숄더백", "아렌 스몰 숄더백"],
+      "liked_products": ["트레이시 비세토스 숄더백"],
+      "upcoming_schedule": "주말 제주 여행",
+      "notes": "첫 구매 후 크로스백 카테고리 탐색 중"
+    },
+    {
+      "id": "C003",
+      "name": "박민정",
+      "age": 27,
+      "gender": "여성",
+      "membership": "VIP",
+      "visit_count": 8,
+      "preferred_colors": ["핑크", "베이지"],
+      "preferred_style": "러블리 캐주얼",
+      "purchase_history": [
+        {"product": "토니 미니 캔버스 쇼퍼백", "date": "2025-10-10", "category": "쇼퍼백"},
+        {"product": "아렌 스몰 숄더백", "date": "2025-08-01", "category": "숄더백"},
+        {"product": "트레이시 비세토스 숄더백", "date": "2025-03-22", "category": "숄더백"}
+      ],
+      "recently_viewed": ["토니 미니 캔버스 쇼퍼백", "비세토스 위켄더 백"],
+      "liked_products": ["비세토스 위켄더 백"],
+      "upcoming_schedule": "다음 달 유럽 여행 예정",
+      "notes": "여행 관련 상품 관심 증가, 파스텔 컬러 선호"
+    },
+    {
+      "id": "C004",
+      "name": "정우진",
+      "age": 28,
+      "gender": "남성",
+      "membership": "신규",
+      "visit_count": 1,
+      "preferred_colors": [],
+      "preferred_style": "미정",
+      "purchase_history": [],
+      "recently_viewed": ["스타크 사이드 스터드 비세토스 백팩"],
+      "liked_products": [],
+      "upcoming_schedule": "미입력",
+      "notes": "온라인에서 백팩 1개만 조회, 구매 이력 없음 (신규 고객)"
+    },
+    {
+      "id": "C005",
+      "name": "최혜림",
+      "age": 33,
+      "gender": "여성",
+      "membership": "VVIP",
+      "visit_count": 15,
+      "preferred_colors": ["블랙", "화이트"],
+      "preferred_style": "모던 럭셔리",
+      "purchase_history": [
+        {"product": "트레이시 비세토스 숄더백", "date": "2025-12-01", "category": "숄더백"},
+        {"product": "비세토스 레더 믹스 다이아몬드 토트백", "date": "2025-09-14", "category": "토트백"},
+        {"product": "비세토스 위켄더 백", "date": "2025-07-08", "category": "트래블백"},
+        {"product": "스타크 사이드 스터드 비세토스 백팩", "date": "2025-04-20", "category": "백팩"}
+      ],
+      "recently_viewed": ["아렌 스몰 숄더백", "트레이시 비세토스 숄더백"],
+      "liked_products": ["아렌 스몰 숄더백"],
+      "upcoming_schedule": "이번 주말 갤러리 오프닝 파티 참석",
+      "notes": "구매 빈도 높은 VVIP, 파티용 미니백 관심, 신상 우선 안내 대상"
+    }
+  ]
+}

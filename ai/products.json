@@ -1,0 +1,82 @@
+{
+  "products": [
+    {
+      "id": "P001",
+      "name": "스타크 사이드 스터드 비세토스 백팩",
+      "line": "Stark",
+      "category": "백팩",
+      "colors": ["코냑", "블랙"],
+      "material": "비세토스",
+      "price": 1490000,
+      "season": "26SS",
+      "tags": ["여행", "비즈니스", "노트북수납", "데일리"],
+      "stock": true,
+      "image_url": "/assets/products/p001.jpg"
+    },
+    {
+      "id": "P002",
+      "name": "아렌 스몰 숄더백",
+      "line": "Aren",
+      "category": "숄더백",
+      "colors": ["블랙", "핑크"],
+      "material": "가죽",
+      "price": 890000,
+      "season": "26SS",
+      "tags": ["데일리", "미니멀", "파티"],
+      "stock": true,
+      "image_url": "/assets/products/p002.jpg"
+    },
+    {
+      "id": "P003",
+      "name": "트레이시 비세토스 숄더백",
+      "line": "Tracy",
+      "category": "숄더백",
+      "colors": ["코냑", "화이트"],
+      "material": "비세토스",
+      "price": 1670000,
+      "season": "25FW",
+      "tags": ["데일리", "클래식", "비즈니스"],
+      "stock": false,
+      "image_url": "/assets/products/p003.jpg"
+    },
+    {
+      "id": "P004",
+      "name": "비세토스 레더 믹스 다이아몬드 토트백",
+      "line": "Diamond",
+      "category": "토트백",
+      "colors": ["블랙"],
+      "material": "비세토스+가죽",
+      "price": 940000,
+      "season": "26SS",
+      "tags": ["비즈니스", "노트북수납", "오피스"],
+      "stock": true,
+      "image_url": "/assets/products/p004.jpg"
+    },
+    {
+      "id": "P005",
+      "name": "토니 미니 캔버스 쇼퍼백",
+      "line": "Tony",
+      "category": "쇼퍼백",
+      "colors": ["핑크", "베이지"],
+      "material": "캔버스",
+      "price": 1220000,
+      "season": "26SS",
+      "tags": ["캐주얼", "데일리", "여행"],
+      "stock": true,
+      "image_url": "/assets/products/p005.jpg"
+    },
+    {
+      "id": "P006",
+      "name": "비세토스 위켄더 백",
+      "line": "Weekender",
+      "category": "트래블백",
+      "colors": ["코냑", "블랙"],
+      "material": "비세토스",
+      "price": 1850000,
+      "season": "25FW",
+      "tags": ["여행", "기내반입", "출장"],
+      "stock": true,
+      "image_url": "/assets/products/p006.jpg"
+    }
+  ]
+}

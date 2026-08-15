@@ -1,0 +1,442 @@
+.customer-checkin-page {
+  min-height: 100vh;
+  position: relative;
+  background: #f2f2f2;
+  color: #1f1f1f;
+  font-family: Pretendard, "Noto Sans KR", sans-serif;
+  overflow: hidden;
+}
+
+.customer-checkin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 26px 10px;
+  background: rgba(242, 242, 242, 0.96);
+  border-bottom: 1px solid rgba(23, 23, 23, 0.08);
+  box-sizing: border-box;
+}
+
+.customer-checkin-brand-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid rgba(13, 13, 13, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.customer-checkin-brand-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1c1d1f;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.customer-checkin-brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #171717;
+}
+
+.customer-checkin-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.customer-checkin-user-pill,
+.customer-checkin-zoom-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  color: #1b1b1b;
+}
+
+.customer-checkin-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #d3d3d3, #9b9b9b);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.customer-checkin-user-chevron {
+  font-size: 12px;
+  color: #3a3a3a;
+}
+
+.customer-checkin-zoom-pill {
+  padding-inline: 14px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.customer-checkin-share-btn {
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #1a1a1a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.customer-checkin-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 36px;
+  min-height: calc(100vh - 120px);
+}
+
+.customer-checkin-label {
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3a3a3a;
+  letter-spacing: -0.02em;
+}
+
+.customer-checkin-card {
+  width: min(420px, 82vw);
+  min-height: 430px;
+  background: rgba(255, 255, 255, 0.3);
+  border: 2px solid #9f63ff;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 1px rgba(159, 99, 255, 0.22);
+  overflow: hidden;
+}
+
+.customer-checkin-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(120, 90, 160, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #3a3a3a;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+.customer-checkin-card-brand {
+  opacity: 0.9;
+}
+
+.customer-checkin-card-mark {
+  color: #9d9d9d;
+  font-size: 0.8rem;
+}
+
+.customer-checkin-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 18px 22px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.customer-checkin-card-tag-row {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.customer-checkin-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 110px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(99, 99, 99, 0.15);
+  border-radius: 999px;
+  font-size: 0.76rem;
+  color: #4d4d4d;
+}
+
+.customer-checkin-user-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.customer-checkin-avatar-circle {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #facc6a, #e2a93d);
+  color: #2d1d00;
+  font-size: 1.8rem;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(226, 169, 61, 0.22);
+}
+
+.customer-checkin-user-text {
+  text-align: center;
+}
+
+.customer-checkin-user-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1b1b1b;
+}
+
+.customer-checkin-user-sub {
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #6c6c6c;
+}
+
+.customer-checkin-info-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.customer-checkin-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(17, 17, 17, 0.08);
+}
+
+.customer-checkin-info-label {
+  font-size: 0.65rem;
+  color: #767676;
+  letter-spacing: 0.08em;
+}
+
+.customer-checkin-info-value {
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.customer-checkin-cta {
+  width: 100%;
+  border: none;
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b3e44, #1d2127);
+  color: #f5f5f5;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 20px rgba(27, 31, 36, 0.2);
+}
+
+.customer-checkin-editor-shell {
+  width: min(420px, 82vw);
+  margin-top: 0;
+}
+
+.customer-checkin-editor-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: #3bb2ff;
+  border: 2px solid #3bb2ff;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  color: #f7fbff;
+  min-height: 54px;
+}
+
+.customer-checkin-editor-text {
+  font-size: 0.76rem;
+  line-height: 1.3;
+  flex: 1;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.customer-checkin-editor-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-checkin-secondary-btn,
+.customer-checkin-primary-btn {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.customer-checkin-secondary-btn {
+  background: rgba(255, 255, 255, 0.96);
+  color: #2b2b2b;
+}
+
+.customer-checkin-primary-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.customer-checkin-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-top: none;
+  padding: 12px 14px;
+  min-height: 52px;
+}
+
+.customer-checkin-toolbar-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #2e2e2e;
+  font-size: 0.98rem;
+  opacity: 0.85;
+}
+
+.customer-checkin-cookie-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 18px 12px 18px;
+  background: rgba(240, 240, 240, 0.96);
+  border-top: 1px solid rgba(23, 23, 23, 0.08);
+  box-sizing: border-box;
+  font-size: 0.7rem;
+  line-height: 1.5;
+  color: #505050;
+}
+
+.customer-checkin-cookie-banner p {
+  margin: 0;
+  flex: 1;
+  max-width: 860px;
+}
+
+.customer-checkin-cookie-banner a {
+  color: #1a1a1a;
+  text-decoration: underline;
+  margin-left: 4px;
+}
+
+.customer-checkin-cookie-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customer-checkin-cookie-btn {
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.customer-checkin-cookie-btn--ghost {
+  background: rgba(255, 255, 255, 0.4);
+  color: #1c1c1c;
+  border: 1px solid rgba(18, 18, 18, 0.16);
+}
+
+.customer-checkin-cookie-btn--solid {
+  background: #1d1d1d;
+  color: #f3f3f3;
+  border: 1px solid rgba(18, 18, 18, 0.8);
+}
+
+.customer-checkin-cookie-close {
+  border: 1px solid rgba(18, 18, 18, 0.14);
+  background: rgba(255, 255, 255, 0.3);
+  color: #1d1d1d;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .customer-checkin-topbar {
+    padding: 14px 12px 8px;
+  }
+
+  .customer-checkin-brand-box {
+    padding: 8px 10px;
+  }
+
+  .customer-checkin-brand-name {
+    font-size: 0.9rem;
+  }
+
+  .customer-checkin-top-actions {
+    gap: 6px;
+  }
+
+  .customer-checkin-user-pill,
+  .customer-checkin-zoom-pill {
+    padding: 6px 8px;
+  }
+
+  .customer-checkin-share-btn {
+    padding: 8px 10px;
+  }
+
+  .customer-checkin-main {
+    padding-top: 28px;
+  }
+
+  .customer-checkin-editor-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .customer-checkin-cookie-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 12px 14px;
+  }
+
+  .customer-checkin-cookie-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}

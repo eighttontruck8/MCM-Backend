@@ -1,0 +1,214 @@
+.staff-assignment-page {
+  background-color: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: relative;
+  width: 100%;
+}
+
+.staff-assignment-page__body {
+  background-color: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 392.687px;
+  position: relative;
+}
+
+.staff-assignment-page__app {
+  background-color: #fafaf8;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  min-height: 853.233px;
+  width: 100%;
+  position: relative;
+}
+
+.staff-assignment-page__screen {
+  background-color: #0a0a0a;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  min-height: 853.233px;
+}
+
+.staff-assignment-page__background {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 70%, rgba(201, 168, 130, 0.07) 0%, rgba(201, 168, 130, 0) 60%);
+}
+
+.staff-assignment-page__avatar {
+  position: absolute;
+  left: 156.34px;
+  top: 170.09px;
+  width: 80px;
+  height: 80px;
+  background-color: #1e1a16;
+  border: 1.112px solid #c9a882;
+  border-radius: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff-assignment-page__avatar-text {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 28px;
+  line-height: 42px;
+  color: #c9a882;
+}
+
+.staff-assignment-page__status-dot {
+  position: absolute;
+  left: 61.78px;
+  top: 61.78px;
+  width: 14px;
+  height: 14px;
+  background-color: #4a9a5a;
+  border: 1.112px solid #0a0a0a;
+  border-radius: 7px;
+}
+
+.staff-assignment-page__heading {
+  position: absolute;
+  left: 115.83px;
+  top: 281.98px;
+  width: 161px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-assignment-page__subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 9px;
+  line-height: 13.5px;
+  color: #c9a882;
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  text-align: center;
+  margin: 0;
+}
+
+.staff-assignment-page__name {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 32px;
+  line-height: 36.8px;
+  color: #ffffff;
+  text-align: center;
+  margin: 0;
+}
+
+.staff-assignment-page__role {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  line-height: 19.5px;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  letter-spacing: 0.78px;
+  margin: 0;
+}
+
+.staff-assignment-page__info-card {
+  position: absolute;
+  left: 31.84px;
+  top: 405.75px;
+  width: 329px;
+  padding: 20px 24px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1.112px solid rgba(201, 168, 130, 0.2);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.staff-assignment-page__info-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 9px;
+  line-height: 13.5px;
+  color: #c9a882;
+  text-transform: uppercase;
+  letter-spacing: 1.62px;
+  margin: 0;
+}
+
+.staff-assignment-page__info-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-assignment-page__info-bullet {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 10px;
+  line-height: 15px;
+  color: #c9a882;
+}
+
+.staff-assignment-page__info-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.staff-assignment-page__visit-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1.112px solid rgba(255, 255, 255, 0.08);
+  padding-top: 14px;
+}
+
+.staff-assignment-page__visit-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #4a9a5a;
+  border-radius: 3px;
+}
+
+.staff-assignment-page__visit-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 18px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.staff-assignment-page__button {
+  position: absolute;
+  left: 31.84px;
+  top: 632.87px;
+  width: 329px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #c9a882;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.staff-assignment-page__button-text {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16.5px;
+  color: #0a0a0a;
+  letter-spacing: 2.2px;
+  text-transform: uppercase;
+}

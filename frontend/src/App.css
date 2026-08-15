@@ -1,0 +1,9 @@
+/* App-level reset and base styles */
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body, #root {
+  width: 100%;
+}
