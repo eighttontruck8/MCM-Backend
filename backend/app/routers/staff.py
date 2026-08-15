@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_staff
 from app.errors import DomainError
@@ -112,6 +113,15 @@ def claim_checkin(checkin_id: str, request: Request, authenticated: CurrentStaff
     user = db.get(User, authenticated.id)
     if staff is None or user is None:
         raise DomainError(403, "STAFF_PROFILE_NOT_FOUND", "직원 정보를 찾을 수 없습니다.")
+    record_audit(
+        db,
+        request,
+        action="STAFF_CLAIMED_VISIT",
+        resource_type="CHECKIN",
+        actor_id=authenticated.id,
+        resource_id=checkin_id,
+        metadata={"store_id": authenticated.store_id},
+    )
     db.commit()
     response = StaffAssignmentResponse(checkin_id=checkin_id, status=CheckinStatus.ASSIGNED, staff=staff_summary(staff, user), assigned_at=now)
     checkin = db.get(Checkin, checkin_id)
@@ -147,6 +157,15 @@ def update_visit_status(checkin_id: str, body: StaffStatusRequest, request: Requ
         assignment.ended_at = now
     staff = db.get(Staff, authenticated.id)
     user = db.get(User, authenticated.id)
+    record_audit(
+        db,
+        request,
+        action="VISIT_STATUS_CHANGED",
+        resource_type="CHECKIN",
+        actor_id=authenticated.id,
+        resource_id=checkin.id,
+        metadata={"status": body.status.value},
+    )
     db.commit()
     response = StaffAssignmentResponse(checkin_id=checkin.id, status=body.status, staff=staff_summary(staff, user), assigned_at=assignment.assigned_at)
     if body.status is CheckinStatus.COMPLETED:

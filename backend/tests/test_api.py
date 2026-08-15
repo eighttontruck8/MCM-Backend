@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import json
+import logging
 from pathlib import Path
 import time
 
@@ -11,10 +13,11 @@ from starlette.websockets import WebSocketDisconnect
 from sqlalchemy import select
 
 from app.main import create_app
-from app.models import Consent, PasswordResetToken, Recommendation, StaffAssignment
+from app.models import AuditLog, Consent, PasswordResetToken, Recommendation, StaffAssignment
 from app.security import token_hash
 
 TEST_PASSWORD = "test-password-1234"
+TEST_QR_TOKEN = "qr-demo-seoul-001-7f4d0b9e8c2a"
 
 
 class CountingAIProvider:
@@ -58,6 +61,7 @@ def make_client() -> TestClient:
             "sqlite+pysqlite:///:memory:",
             jwt_secret="test-jwt-secret-with-sufficient-length",
             demo_password=TEST_PASSWORD,
+            demo_qr_token=TEST_QR_TOKEN,
         )
     )
 
@@ -79,7 +83,7 @@ def create_checkin(client: TestClient, auth_headers: dict[str, str] | None = Non
     response = client.post(
         "/api/v1/check-ins",
         headers=auth_headers or headers(client),
-        json={"tag_token": "nfc-demo-seoul-001"},
+        json={"tag_token": TEST_QR_TOKEN},
     )
     assert response.status_code == 201, response.text
     return response.json()["checkin_id"]
@@ -118,6 +122,44 @@ def test_health_and_seed_catalog() -> None:
         products = client.get("/api/v1/products", params={"store_id": "S001", "in_stock": True})
         assert products.status_code == 200
         assert len(products.json()["items"]) == 5
+
+
+def test_qr_entry_validation_redirect_and_nfc_compatibility() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        demo_qr_token=TEST_QR_TOKEN,
+        frontend_base_url="https://demo.m-journey.example",
+    )
+    with TestClient(app) as client:
+        entry = client.get(f"/api/v1/entry-tags/{TEST_QR_TOKEN}")
+        assert entry.status_code == 200
+        assert entry.json()["channel"] == "QR"
+        assert entry.json()["store"]["store_id"] == "S001"
+        assert entry.json()["checkin_url"] == (
+            f"https://demo.m-journey.example/check-in?tag_token={TEST_QR_TOKEN}"
+        )
+        assert "customer_id" not in entry.text
+
+        redirect = client.get(f"/entry/{TEST_QR_TOKEN}", follow_redirects=False)
+        assert redirect.status_code == 307
+        assert redirect.headers["location"] == entry.json()["checkin_url"]
+
+        invalid = client.get("/api/v1/entry-tags/invalid-qr-token")
+        assert invalid.status_code == 400
+        assert invalid.json()["error"]["code"] == "INVALID_ENTRY_TAG"
+
+        legacy_nfc = client.get("/api/v1/entry-tags/nfc-demo-seoul-001")
+        assert legacy_nfc.status_code == 200
+        assert legacy_nfc.json()["channel"] == "NFC"
+        customer_headers = headers(client, "customer2@example.com")
+        nfc_checkin = client.post(
+            "/api/v1/check-ins",
+            headers=customer_headers,
+            json={"tag_token": "nfc-demo-seoul-001"},
+        )
+        assert nfc_checkin.status_code == 201
 
 
 def test_private_shopping_flow() -> None:
@@ -229,7 +271,7 @@ def test_staff_role_and_customer_endpoint_access_control() -> None:
         staff_headers = {"Authorization": f"Bearer {staff_tokens['access_token']}"}
         assert staff_tokens["user"]["role"] == "STAFF"
         assert staff_tokens["user"]["store_id"] == "S001"
-        denied = client.post("/api/v1/check-ins", headers=staff_headers, json={"tag_token": "nfc-demo-seoul-001"})
+        denied = client.post("/api/v1/check-ins", headers=staff_headers, json={"tag_token": TEST_QR_TOKEN})
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "CUSTOMER_ROLE_REQUIRED"
 
@@ -241,7 +283,7 @@ def test_staff_role_and_customer_endpoint_access_control() -> None:
 
 def test_missing_or_invalid_credentials() -> None:
     with make_client() as client:
-        missing = client.post("/api/v1/check-ins", json={"tag_token": "nfc-demo-seoul-001"})
+        missing = client.post("/api/v1/check-ins", json={"tag_token": TEST_QR_TOKEN})
         assert missing.status_code == 401
         assert missing.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
         invalid_login = client.post("/api/v1/auth/login", json={"email": "customer@example.com", "password": "wrong-password"})
@@ -277,7 +319,7 @@ def test_staff_queue_store_access_masking_and_visit_progress() -> None:
         duplicate_checkin = client.post(
             "/api/v1/check-ins",
             headers=customer_headers,
-            json={"tag_token": "nfc-demo-seoul-001"},
+            json={"tag_token": TEST_QR_TOKEN},
         )
         assert duplicate_checkin.status_code == 409
         assert duplicate_checkin.json()["error"]["code"] == "ACTIVE_CHECKIN_EXISTS"
@@ -763,3 +805,111 @@ def test_expired_password_reset_token_is_rejected() -> None:
         )
         assert response.status_code == 400
         assert response.json()["error"]["code"] == "INVALID_PASSWORD_RESET_TOKEN"
+
+
+def test_rate_limits_login_password_reset_and_ai_generation() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        expose_password_reset_token=True,
+        rate_limits={"login": 2, "password_reset": 1, "ai": 1},
+    )
+    with TestClient(app) as client:
+        first_login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        )
+        assert first_login.status_code == 200
+        assert client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        ).status_code == 200
+        limited_login = client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        )
+        assert limited_login.status_code == 429
+        assert limited_login.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
+        assert int(limited_login.headers["Retry-After"]) >= 1
+
+        reset = client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        )
+        assert reset.status_code == 202
+        assert client.post(
+            "/api/v1/auth/password-reset/request",
+            json={"email": "customer@example.com"},
+        ).status_code == 429
+
+        customer_headers = {"Authorization": f"Bearer {first_login.json()['access_token']}"}
+        checkin_id = create_checkin(client, customer_headers)
+        assert client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers).status_code == 200
+        limited_ai = client.post(f"/api/v1/check-ins/{checkin_id}/lookbook", headers=customer_headers)
+        assert limited_ai.status_code == 429
+
+
+def test_audit_logs_security_events_without_credentials() -> None:
+    with make_client() as client:
+        failed = client.post(
+            "/api/v1/auth/login",
+            json={"email": "customer@example.com", "password": "wrong-password"},
+        )
+        assert failed.status_code == 401
+        successful = login(client)
+        customer_headers = {"Authorization": f"Bearer {successful['access_token']}"}
+        checkin_id = create_staff_request(client, customer_headers)
+        staff_headers = headers(client, "staff@example.com")
+        assert client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers).status_code == 200
+        assert client.post(f"/api/v1/check-ins/{checkin_id}/consent/revoke", headers=customer_headers).status_code == 200
+
+        with client.app.state.database.session_factory() as db:
+            audit_logs = db.scalars(select(AuditLog).order_by(AuditLog.created_at)).all()
+            actions = {audit.action for audit in audit_logs}
+            assert {
+                "AUTH_LOGIN_FAILED",
+                "AUTH_LOGIN_SUCCEEDED",
+                "STAFF_CLAIMED_VISIT",
+                "CONSENT_REVOKED",
+            }.issubset(actions)
+            serialized = json.dumps(
+                [audit.metadata_json for audit in audit_logs],
+                ensure_ascii=False,
+            )
+            assert "wrong-password" not in serialized
+            assert TEST_PASSWORD not in serialized
+            assert "customer@example.com" not in serialized
+            assert all(audit.request_id and audit.request_id.startswith("req_") for audit in audit_logs)
+
+
+def test_structured_request_log_excludes_query_and_body(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="mjourney.request")
+    with make_client() as client:
+        response = client.post(
+            "/api/v1/auth/login?debug_secret=must-not-appear",
+            headers={"X-Request-ID": "req_structured_log_test"},
+            json={"email": "customer@example.com", "password": TEST_PASSWORD},
+        )
+        assert response.status_code == 200
+
+    records = [record for record in caplog.records if record.name == "mjourney.request"]
+    entry = json.loads(records[-1].message)
+    assert entry["request_id"] == "req_structured_log_test"
+    assert entry["path"] == "/api/v1/auth/login"
+    assert entry["status_code"] == 200
+    assert entry["duration_ms"] >= 0
+    assert "must-not-appear" not in records[-1].message
+    assert TEST_PASSWORD not in records[-1].message
+
+
+def test_structured_log_masks_qr_token_path(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.INFO, logger="mjourney.request")
+    with make_client() as client:
+        response = client.get(f"/entry/{TEST_QR_TOKEN}", follow_redirects=False)
+        assert response.status_code == 307
+
+    records = [record for record in caplog.records if record.name == "mjourney.request"]
+    entry = json.loads(records[-1].message)
+    assert entry["path"] == "/entry/{tag_token}"
+    assert TEST_QR_TOKEN not in records[-1].message

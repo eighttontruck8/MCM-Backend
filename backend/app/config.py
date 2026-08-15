@@ -17,6 +17,12 @@ class Settings:
     ai_max_retries: int
     password_reset_expire_minutes: int
     expose_password_reset_token: bool
+    rate_limit_window_seconds: int
+    login_rate_limit: int
+    password_reset_rate_limit: int
+    ai_rate_limit: int
+    frontend_base_url: str
+    demo_qr_token: str
 
 
 def load_settings() -> Settings:
@@ -32,4 +38,10 @@ def load_settings() -> Settings:
         ai_max_retries=int(os.getenv("M_JOURNEY_AI_MAX_RETRIES", "1")),
         password_reset_expire_minutes=int(os.getenv("M_JOURNEY_PASSWORD_RESET_EXPIRE_MINUTES", "15")),
         expose_password_reset_token=os.getenv("M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN", "false").lower() == "true",
+        rate_limit_window_seconds=int(os.getenv("M_JOURNEY_RATE_LIMIT_WINDOW_SECONDS", "60")),
+        login_rate_limit=int(os.getenv("M_JOURNEY_LOGIN_RATE_LIMIT", "10")),
+        password_reset_rate_limit=int(os.getenv("M_JOURNEY_PASSWORD_RESET_RATE_LIMIT", "5")),
+        ai_rate_limit=int(os.getenv("M_JOURNEY_AI_RATE_LIMIT", "10")),
+        frontend_base_url=os.getenv("M_JOURNEY_FRONTEND_BASE_URL", "http://localhost:5173").rstrip("/"),
+        demo_qr_token=os.getenv("M_JOURNEY_DEMO_QR_TOKEN", "qr-demo-seoul-001-7f4d0b9e8c2a"),
     )

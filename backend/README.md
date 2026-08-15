@@ -1,6 +1,6 @@
 # M-Journey Backend
 
-해커톤 MVP의 기본 백엔드다. 고객·직원 JWT 인증, 고객·상품·재고 조회와 NFC 체크인, 쇼핑 방식, 동의/방문 목적 저장을 제공한다.
+해커톤 MVP의 기본 백엔드다. 고객·직원 JWT 인증, 고객·상품·재고 조회와 QR 기반 매장 체크인, 쇼핑 방식, 동의/방문 목적 저장을 제공한다. NFC는 같은 진입 토큰 계약을 사용하는 선택 호환 방식이다.
 
 ## 실행
 
@@ -8,6 +8,8 @@
 cd backend
 $env:M_JOURNEY_JWT_SECRET='<충분히 긴 임의 문자열>'
 $env:M_JOURNEY_DEMO_PASSWORD='<데모 계정 비밀번호>'
+$env:M_JOURNEY_FRONTEND_BASE_URL='http://localhost:5173'
+$env:M_JOURNEY_DEMO_QR_TOKEN='<충분히 긴 임의 토큰>'
 uv sync --dev
 uv run uvicorn app.main:app --reload
 ```
@@ -34,6 +36,22 @@ Seed 계정:
 - 직원: `staff@example.com`, `staff2@example.com` (`S001` 소속)
 - 비밀번호: `M_JOURNEY_DEMO_PASSWORD` 환경변수에 설정한 값
 
+### QR 진입
+
+QR에는 다음 백엔드 URL을 담는다.
+
+```text
+https://<backend-host>/entry/<M_JOURNEY_DEMO_QR_TOKEN>
+```
+
+스캔하면 백엔드가 활성 태그와 매장을 검증하고 다음 프론트 주소로 `307` 리다이렉트한다.
+
+```text
+<M_JOURNEY_FRONTEND_BASE_URL>/check-in?tag_token=<opaque-token>
+```
+
+프론트는 로그인 전후에 `tag_token`을 보존하고, 로그인 완료 후 아래 체크인 API를 호출한다. 모바일 실기기 데모에서는 `localhost` 대신 휴대폰에서 접근 가능한 배포 주소 또는 LAN 주소를 설정해야 한다.
+
 로그인:
 
 ```text
@@ -51,11 +69,13 @@ POST /api/v1/check-ins
 Authorization: Bearer <access_token>
 
 {
-  "tag_token": "nfc-demo-seoul-001"
+  "tag_token": "<M_JOURNEY_DEMO_QR_TOKEN 값>"
 }
 ```
 
 토큰 갱신과 로그아웃은 각각 `POST /api/v1/auth/refresh`, `POST /api/v1/auth/logout`에 `refresh_token`을 전달한다. 갱신 시 기존 Refresh Token은 즉시 폐기된다.
+
+`GET /api/v1/entry-tags/{tag_token}`으로 로그인 전에 태그·매장·체크인 URL을 검증할 수 있다. 기존 `nfc-demo-seoul-001` 토큰도 NFC 호환 시연용으로 유지한다.
 
 ## 직원 방문 처리
 
@@ -130,3 +150,21 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 재설정 토큰은 기본 15분 동안 유효하며 DB에는 SHA-256 해시만 저장한다. 요청 API는 계정 존재 여부와 관계없이 같은 `202` 응답을 반환한다. 비밀번호가 변경되면 해당 사용자의 모든 Refresh Token을 폐기하고 인증 버전을 증가시켜 기존 Access Token과 WebSocket 연결용 토큰도 무효화한다.
 
 실제 메일 Provider가 연결되기 전 로컬 시연에서만 `M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN=true`를 설정해 응답의 `reset_token`을 확인할 수 있다. 운영 환경에서는 반드시 `false`로 유지하고 토큰을 메일 등 별도 채널로 전달해야 한다.
+
+## 감사·요청 로그와 Rate Limit
+
+로그인 성공·실패, 로그아웃, 비밀번호 재설정, 동의 철회, 직원 배정과 방문 상태 변경은 `audit_logs` 테이블에 기록한다. 감사 로그에는 비밀번호, 토큰, 이메일, 방문 메모를 저장하지 않는다.
+
+HTTP 요청 로그는 JSON 문자열로 기록하며 다음 필드만 포함한다.
+
+- `event`, `request_id`, `method`, `path`, `status_code`, `duration_ms`
+- 요청 본문과 쿼리 문자열은 기록하지 않는다.
+
+로그인, 비밀번호 재설정 요청, AI 룩북·가이드에는 sliding-window rate limit을 적용한다. 제한 초과 시 `429 RATE_LIMIT_EXCEEDED`와 `Retry-After` 헤더를 반환한다. 기본 제한은 환경변수로 조정할 수 있다.
+
+- `M_JOURNEY_RATE_LIMIT_WINDOW_SECONDS=60`
+- `M_JOURNEY_LOGIN_RATE_LIMIT=10`
+- `M_JOURNEY_PASSWORD_RESET_RATE_LIMIT=5`
+- `M_JOURNEY_AI_RATE_LIMIT=10`
+
+현재 limiter는 단일 프로세스용이다. 다중 서버에서는 Redis 등 공유 저장소 기반 구현으로 교체해야 한다.

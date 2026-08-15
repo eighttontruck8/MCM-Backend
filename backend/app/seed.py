@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, CustomerWishlist, Inventory, NfcTag, Product, PurchaseHistory, Staff, Store, User
-from app.schemas import UserRole
+from app.models import Customer, CustomerWishlist, EntryTag, Inventory, Product, PurchaseHistory, Staff, Store, User
+from app.schemas import EntryChannel, UserRole
 from app.security import hash_password
 
 
@@ -48,12 +48,15 @@ PRODUCTS = [
 ]
 
 
-def seed_database(session: Session, demo_password: str | None = None) -> None:
+def seed_database(
+    session: Session,
+    demo_password: str | None = None,
+    demo_qr_token: str = "qr-demo-seoul-001-7f4d0b9e8c2a",
+) -> None:
     now = datetime.now(timezone.utc)
     if not session.scalar(select(func.count()).select_from(Customer)):
         store = Store(id="S001", name="MCM 서울 플래그십", timezone="Asia/Seoul")
         session.add(store)
-        session.add(NfcTag(token="nfc-demo-seoul-001", store_id=store.id, is_active=True))
         session.add_all(Customer(**customer) for customer in CUSTOMERS)
 
         for product_id, name, line, category, colors, material, price, tags, quantity in PRODUCTS:
@@ -78,6 +81,14 @@ def seed_database(session: Session, demo_password: str | None = None) -> None:
                     updated_at=now,
                 )
             )
+
+    entry_tags = [
+        (demo_qr_token, EntryChannel.QR),
+        ("nfc-demo-seoul-001", EntryChannel.NFC),
+    ]
+    for token, channel in entry_tags:
+        if session.get(EntryTag, token) is None:
+            session.add(EntryTag(token=token, store_id="S001", channel=channel.value, is_active=True))
 
     if demo_password:
         seed_users = [

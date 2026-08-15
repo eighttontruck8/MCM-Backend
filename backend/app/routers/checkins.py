@@ -8,11 +8,12 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import current_customer_id
 from app.errors import DomainError
 from app.mappers import to_store
-from app.models import Checkin, Consent, Customer, NfcTag, Recommendation, Staff, StaffAssignment, Store, User
+from app.models import Checkin, Consent, Customer, EntryTag, Recommendation, Staff, StaffAssignment, Store, User
 from app.schemas import (
     CheckinCreateRequest,
     CheckinCreateResponse,
@@ -100,9 +101,9 @@ def create_checkin(
     if customer is None:
         raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
 
-    tag = db.get(NfcTag, body.tag_token)
+    tag = db.get(EntryTag, body.tag_token)
     if tag is None or not tag.is_active:
-        raise DomainError(400, "INVALID_NFC_TAG", "유효하지 않은 NFC 태그입니다.")
+        raise DomainError(400, "INVALID_ENTRY_TAG", "유효하지 않은 매장 진입 태그입니다.")
     store = db.get(Store, tag.store_id)
     if store is None or not store.is_active:
         raise DomainError(400, "STORE_UNAVAILABLE", "현재 체크인할 수 없는 매장입니다.")
@@ -281,6 +282,15 @@ def revoke_consent(
         recommendation.output = None
         recommendation.error_code = "CONSENT_REVOKED"
         recommendation.updated_at = now
+    record_audit(
+        db,
+        request,
+        action="CONSENT_REVOKED",
+        resource_type="CHECKIN",
+        actor_id=customer_id,
+        resource_id=checkin.id,
+        metadata={"policy_version": consent.policy_version},
+    )
     db.commit()
 
     response = ConsentRevocationResponse(

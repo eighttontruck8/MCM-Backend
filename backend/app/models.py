@@ -100,11 +100,12 @@ class Inventory(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
-class NfcTag(Base):
-    __tablename__ = "nfc_tags"
+class EntryTag(Base):
+    __tablename__ = "entry_tags"
 
     token: Mapped[str] = mapped_column(String(255), primary_key=True)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(20), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
@@ -177,3 +178,16 @@ class PurchaseHistory(Base):
     category_snapshot: Mapped[str] = mapped_column(String(80))
     price_snapshot: Mapped[int] = mapped_column(Integer)
     purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    actor_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    resource_type: Mapped[str] = mapped_column(String(80), index=True)
+    resource_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

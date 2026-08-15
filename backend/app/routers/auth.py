@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_user
 from app.errors import DomainError
@@ -25,6 +26,7 @@ from app.schemas import (
     UserRole,
 )
 from app.security import TokenError, create_token, decode_token, hash_password, token_hash, verify_password
+from app.rate_limit import rate_limit_key
 
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
@@ -68,9 +70,33 @@ def stored_refresh_token(raw_token: str, request: Request, db: Session) -> tuple
 
 @router.post("/auth/login", response_model=TokenResponse)
 def login(body: LoginRequest, request: Request, db: DbSession) -> TokenResponse:
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("login", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     user = db.scalar(select(User).where(User.email == body.email.strip().lower()))
     if user is None or not user.is_active or not verify_password(body.password, user.password_hash):
+        record_audit(
+            db,
+            request,
+            action="AUTH_LOGIN_FAILED",
+            resource_type="USER",
+            actor_id=user.id if user else None,
+            resource_id=user.id if user else None,
+            metadata={"outcome": "DENIED"},
+        )
+        db.commit()
         raise DomainError(401, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다.")
+    record_audit(
+        db,
+        request,
+        action="AUTH_LOGIN_SUCCEEDED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": user.role},
+    )
     return issue_tokens(user, request, db)
 
 
@@ -86,8 +112,16 @@ def refresh(body: RefreshRequest, request: Request, db: DbSession) -> TokenRespo
 
 @router.post("/auth/logout", response_model=MessageResponse)
 def logout(body: LogoutRequest, request: Request, db: DbSession) -> MessageResponse:
-    _, stored = stored_refresh_token(body.refresh_token, request, db)
+    payload, stored = stored_refresh_token(body.refresh_token, request, db)
     stored.revoked_at = utc_now()
+    record_audit(
+        db,
+        request,
+        action="AUTH_LOGOUT",
+        resource_type="USER",
+        actor_id=payload["sub"],
+        resource_id=payload["sub"],
+    )
     db.commit()
     return MessageResponse(message="로그아웃되었습니다.")
 
@@ -102,6 +136,11 @@ def request_password_reset(
     request: Request,
     db: DbSession,
 ) -> PasswordResetRequestResponse:
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("password_reset", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["password_reset"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     user = db.scalar(select(User).where(User.email == body.email.strip().lower()))
     raw_token = None
     if user is not None and user.is_active:
@@ -124,7 +163,16 @@ def request_password_reset(
                 created_at=now,
             )
         )
-        db.commit()
+    record_audit(
+        db,
+        request,
+        action="PASSWORD_RESET_REQUESTED",
+        resource_type="USER",
+        actor_id=user.id if user else None,
+        resource_id=user.id if user else None,
+        metadata={"account_matched": user is not None and user.is_active},
+    )
+    db.commit()
     return PasswordResetRequestResponse(
         message="계정이 존재하면 비밀번호 재설정 안내가 전송됩니다.",
         reset_token=(
@@ -138,6 +186,7 @@ def request_password_reset(
 @router.post("/auth/password-reset/confirm", response_model=MessageResponse)
 def confirm_password_reset(
     body: PasswordResetConfirmRequest,
+    request: Request,
     db: DbSession,
 ) -> MessageResponse:
     reset_token = db.scalar(
@@ -176,6 +225,14 @@ def confirm_password_reset(
             RefreshToken.revoked_at.is_(None),
         )
         .values(revoked_at=now)
+    )
+    record_audit(
+        db,
+        request,
+        action="PASSWORD_RESET_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
     )
     db.commit()
     return MessageResponse(message="비밀번호가 변경되었습니다. 다시 로그인해주세요.")

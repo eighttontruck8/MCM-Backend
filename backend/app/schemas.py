@@ -39,6 +39,11 @@ class UserRole(StrEnum):
     STAFF = "STAFF"
 
 
+class EntryChannel(StrEnum):
+    QR = "QR"
+    NFC = "NFC"
+
+
 class LoginRequest(ApiModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=8, max_length=200)
@@ -142,6 +147,13 @@ class PurchaseListResponse(ApiModel):
 
 class CheckinCreateRequest(ApiModel):
     tag_token: str = Field(min_length=8, max_length=255)
+
+
+class EntryTagResponse(ApiModel):
+    tag_token: str
+    channel: EntryChannel
+    store: StoreResponse
+    checkin_url: str
 
 
 class CheckinCreateResponse(ApiModel):

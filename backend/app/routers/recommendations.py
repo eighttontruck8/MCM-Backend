@@ -17,6 +17,7 @@ from app.dependencies import AuthenticatedUser, current_customer, current_staff
 from app.errors import DomainError
 from app.models import Checkin, Consent, Customer, Inventory, Product, Recommendation, StaffAssignment
 from app.routers.staff import STAFF_ACTIVE_STATUSES, mask_name
+from app.rate_limit import rate_limit_key
 from app.schemas import (
     GuideCustomerResponse,
     GuideProductResponse,
@@ -249,6 +250,11 @@ def create_lookbook(checkin_id: str, request: Request, authenticated: CurrentCus
         raise DomainError(403, "CHECKIN_ACCESS_DENIED", "이 체크인에 접근할 수 없습니다.")
     if checkin.status not in CUSTOMER_ACTIVE_STATUSES:
         raise DomainError(409, "CHECKIN_STATE_CONFLICT", "종료된 체크인에서는 룩북을 생성할 수 없습니다.")
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("ai-lookbook", request.client.host if request.client else None, authenticated.id),
+        limit=request.app.state.rate_limits["ai"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     customer = db.get(Customer, checkin.customer_id)
     rows = candidate_rows(checkin, db)
     context = build_context(checkin, customer, rows, staff_view=False)
@@ -292,6 +298,11 @@ def get_staff_guide(checkin_id: str, request: Request, authenticated: CurrentSta
         raise DomainError(403, "PROFILE_SHARE_CONSENT_REQUIRED", "정보 공유 동의가 필요합니다.")
     if assignment is None or assignment.staff_id != authenticated.id:
         raise DomainError(403, "ASSIGNED_STAFF_REQUIRED", "배정된 직원만 상세 가이드를 조회할 수 있습니다.")
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("ai-guide", request.client.host if request.client else None, authenticated.id),
+        limit=request.app.state.rate_limits["ai"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     customer = db.get(Customer, checkin.customer_id)
     rows = candidate_rows(checkin, db)
     context = build_context(checkin, customer, rows, staff_view=True, consent_scopes=set(consent.scopes))
