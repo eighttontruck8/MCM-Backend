@@ -40,6 +40,24 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 기존 개발용 SQLite 파일은 Alembic 도입 전에 `create_all`로 생성되었을 수 있다. 데이터 보존이 필요하지 않은 개발 DB는 파일을 다시 만든 뒤 `upgrade head`를 적용하고, 보존이 필요하면 스키마를 확인한 후에만 `alembic stamp head`를 사용한다.
 
+## Docker로 PostgreSQL 실행
+
+저장소 루트의 `compose.yaml`은 PostgreSQL과 API를 함께 실행한다. API는 DB health check가 통과한 뒤 Alembic migration을 적용하고 시작한다.
+
+```powershell
+cd ..
+$env:M_JOURNEY_JWT_SECRET='<충분히 긴 임의 문자열>'
+$env:M_JOURNEY_DEMO_PASSWORD='<데모 계정 비밀번호>'
+docker compose up --build
+```
+
+- API 문서: <http://127.0.0.1:8000/docs>
+- 준비 상태: <http://127.0.0.1:8000/health/ready>
+- 종료: `docker compose down`
+- DB 데이터까지 초기화: `docker compose down --volumes` (로컬 데모 데이터가 삭제됨)
+
+Compose 파일의 기본 비밀번호와 JWT secret은 로컬 데모 전용이다. 외부 배포 전에는 `POSTGRES_PASSWORD`, `M_JOURNEY_JWT_SECRET`, `M_JOURNEY_DEMO_PASSWORD`, `M_JOURNEY_FRONTEND_BASE_URL`, `M_JOURNEY_CORS_ORIGINS`를 반드시 별도 환경변수로 설정한다. 다중 API 인스턴스 배포에서는 컨테이너마다 migration을 실행하지 말고 배포 단계의 단일 migration job으로 분리한다.
+
 ## 테스트
 
 ```powershell

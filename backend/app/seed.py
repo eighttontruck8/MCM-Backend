@@ -73,6 +73,11 @@ def seed_database(
                     image_url=f"/assets/products/{product_id.lower()}.jpg",
                 )
             )
+
+        # [Backend-01-'PostgreSQL seed 외래키 순서 보장'] 부모 레코드를 참조 레코드보다 먼저 flush한다.
+        session.flush()
+
+        for product_id, _, _, _, _, _, _, _, quantity in PRODUCTS:
             session.add(
                 Inventory(
                     store_id=store.id,
@@ -81,6 +86,7 @@ def seed_database(
                     updated_at=now,
                 )
             )
+        session.flush()
 
     entry_tags = [
         (demo_qr_token, EntryChannel.QR),
@@ -89,6 +95,7 @@ def seed_database(
     for token, channel in entry_tags:
         if session.get(EntryTag, token) is None:
             session.add(EntryTag(token=token, store_id="S001", channel=channel.value, is_active=True))
+    session.flush()
 
     if demo_password:
         seed_users = [
@@ -105,6 +112,7 @@ def seed_database(
             session.add(Staff(id="ST001", store_id="S001", title="Client Advisor", experience_years=4))
         if session.get(Staff, "ST002") is None:
             session.add(Staff(id="ST002", store_id="S001", title="Senior Client Advisor", experience_years=6))
+        session.flush()
 
     wishlist_seed = {"C001": ["P001"], "C002": ["P003"]}
     for customer_id, product_ids in wishlist_seed.items():

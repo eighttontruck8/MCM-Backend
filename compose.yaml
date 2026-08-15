@@ -1,0 +1,48 @@
+name: mjourney
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-mjourney}"
+      POSTGRES_USER: "${POSTGRES_USER:-mjourney}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-mjourney-dev-password}"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+    environment:
+      M_JOURNEY_DATABASE_URL: "postgresql+psycopg://${POSTGRES_USER:-mjourney}:${POSTGRES_PASSWORD:-mjourney-dev-password}@db:5432/${POSTGRES_DB:-mjourney}"
+      M_JOURNEY_AUTO_CREATE_SCHEMA: "false"
+      M_JOURNEY_SEED_DEMO_DATA: "${M_JOURNEY_SEED_DEMO_DATA:-true}"
+      M_JOURNEY_JWT_SECRET: "${M_JOURNEY_JWT_SECRET:-local-docker-secret-change-before-deploy}"
+      M_JOURNEY_DEMO_PASSWORD: "${M_JOURNEY_DEMO_PASSWORD:-mjourney-demo-password}"
+      M_JOURNEY_FRONTEND_BASE_URL: "${M_JOURNEY_FRONTEND_BASE_URL:-http://localhost:5173}"
+      M_JOURNEY_CORS_ORIGINS: "${M_JOURNEY_CORS_ORIGINS:-http://localhost:5173}"
+      M_JOURNEY_DEMO_QR_TOKEN: "${M_JOURNEY_DEMO_QR_TOKEN:-qr-demo-seoul-001-7f4d0b9e8c2a}"
+    ports:
+      - "${M_JOURNEY_API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/ready', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    init: true
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
