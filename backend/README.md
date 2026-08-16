@@ -88,6 +88,17 @@ uv run --env-file ../.env.production python -m app.deployment --show-qr-url
 
 명령 출력에 포함된 실제 QR URL은 공개 로그나 저장소에 남기지 않는다.
 
+### 인쇄용 시연 QR 생성
+
+preflight를 통과한 운영 환경으로 저장소 루트의 `demo-artifacts/`에 흰 배경 SVG QR을 생성한다. 이 디렉터리는 Git에서 제외되며, QR 생성 결과의 콘솔 출력에도 실제 토큰을 표시하지 않는다.
+
+```powershell
+cd backend
+uv run --env-file ../.env.production python -m app.demo_qr --output ../demo-artifacts/mjourney-entry.svg
+```
+
+기존 파일은 자동으로 덮어쓰지 않는다. 의도적으로 다시 만들 때만 `--force`를 추가한다. 생성된 SVG는 브라우저에서 열어 원본 비율로 인쇄하고, 실제 휴대폰 카메라로 HTTPS 접속과 체크인 완료까지 확인한다.
+
 ## 테스트
 
 ```powershell
