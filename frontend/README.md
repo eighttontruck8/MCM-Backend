@@ -15,6 +15,15 @@ npm run dev
 
 기본 API 주소는 `http://127.0.0.1:8000`이며 `VITE_API_BASE_URL`로 변경한다.
 
+운영 빌드 전에는 `.env.production.example`을 `.env.production`으로 복사하고 실제 공개 API HTTPS origin으로 교체한다.
+
+```powershell
+Copy-Item .env.production.example .env.production
+npm run build
+```
+
+백엔드의 `M_JOURNEY_PUBLIC_API_BASE_URL`과 프론트의 `VITE_API_BASE_URL`은 같은 origin이어야 한다.
+
 ## QR 체크인 흐름
 
 백엔드 QR URL `/entry/{tag_token}`은 프론트의 다음 주소로 리다이렉트한다.

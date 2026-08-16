@@ -15,7 +15,8 @@ MCM-Backend/
 - 백엔드와 PostgreSQL: 저장소 루트에서 `docker compose up --build`
 - 백엔드 단독 개발: `backend/README.md` 참고
 - 프론트엔드: Node.js 20.19 이상(Node 22 권장), `frontend`에서 `npm ci`, `npm run dev`
-- AI: 현재 독립 프로토타입이며, 백엔드 `AIProvider` 계약에 맞춘 통합 작업이 필요하다.
+- AI: `ai/`는 프롬프트 프로토타입이며 실제 호출은 백엔드 `AIProvider`가 담당한다.
+- 운영 배포 준비: `.env.production.example`을 복사·수정한 뒤 `backend`에서 배포 preflight를 실행한다.
 
 각 하위 폴더에 별도 `.git`을 만들지 않는다. 모든 변경은 이 저장소의 `main` 브랜치에서 함께 관리한다.
 
@@ -26,4 +27,4 @@ MCM-Backend/
 - AI는 백엔드가 전달한 context로 문장과 `product_id` 후보만 생성한다.
 - 가격, 이미지, 재고는 AI나 프론트 mock이 아니라 백엔드 응답을 사용한다.
 
-현재 프론트는 QR 태그 검증, 고객·직원 로그인, JWT 갱신, 고객 체크인 생성·재개까지 백엔드와 연결되어 있다. 나머지 화면은 `백엔드_개발_작업목록.md`의 통합 단계에 따라 순차 연결한다.
+현재 프론트는 QR 진입부터 고객 체크인·룩북·찜·구매 이력과 직원 대기열·실시간 배정까지 백엔드에 연결되어 있다. 실제 운영 도메인을 확정하면 환경 템플릿의 주소를 교체하고 QR 시연을 검증한다.

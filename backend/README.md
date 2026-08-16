@@ -70,6 +70,24 @@ $env:M_JOURNEY_CORS_ORIGINS='https://shop.example.com,https://staff.example.com'
 
 운영 모드는 와일드카드, HTTP, localhost, 경로가 포함된 주소를 거부한다. `M_JOURNEY_FRONTEND_BASE_URL`도 QR 진입 리다이렉트 안전성을 위해 CORS 허용 목록에 포함되어야 한다. 허용 요청 헤더는 `Authorization`, `Content-Type`, `X-Request-ID`이며 응답에서는 `X-Request-ID`, `Retry-After`를 프론트에 노출한다.
 
+### 운영 배포 preflight
+
+저장소 루트의 `.env.production.example`을 복사한 뒤 `example.com`과 모든 `<...>` 값을 실제 도메인·비밀값으로 교체한다. 실제 `.env.production`은 Git에서 제외된다.
+
+```powershell
+Copy-Item .env.production.example .env.production
+cd backend
+uv run --env-file ../.env.production python -m app.deployment
+```
+
+preflight는 실제 HTTPS API/프론트 origin, CORS 일치, PostgreSQL URL, 스키마 자동 생성 비활성화, JWT·데모 비밀번호·QR 토큰 강도를 검사한다. 성공 결과의 QR 토큰은 기본적으로 숨겨진다. QR 제작 직전에만 아래 명령으로 실제 진입 URL을 확인한다.
+
+```powershell
+uv run --env-file ../.env.production python -m app.deployment --show-qr-url
+```
+
+명령 출력에 포함된 실제 QR URL은 공개 로그나 저장소에 남기지 않는다.
+
 ## 테스트
 
 ```powershell
