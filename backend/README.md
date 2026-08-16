@@ -200,7 +200,28 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 - `CONSENT_REVOKED` 이벤트를 직원과 고객 WebSocket에 전달한다.
 - 같은 철회를 반복 요청해도 최초 철회 시각을 반환한다.
 
-법적·운영 보존 기간과 기간 만료 후 익명화·삭제 정책은 확정 전이므로 자동 purge는 아직 수행하지 않는다.
+MVP 개인정보 보존 정책은 다음과 같다.
+
+- 종료(`COMPLETED`, `CANCELLED`) 방문의 자유 입력 메모·방문 목적과 AI 추천 결과: 90일
+- 만료된 Refresh Token·비밀번호 재설정 토큰: 만료 후 7일
+- 비밀번호·토큰·이메일·방문 메모가 없는 감사 로그: 365일
+
+동의 정책 버전·범위·동의/철회 시각과 추천 생성 이력 행은 감사 목적으로 유지한다. 보존 기간이 지난 추천은 출력만 제거하고 `REVOKED / PERSONAL_DATA_PURGED`로 표시한다. 활성 방문과 고객 프로필·찜·구매 이력은 이 정리 작업의 대상이 아니다.
+
+명령은 `backend` 디렉터리에서 실행한다. 기본 실행은 변경 없이 대상 건수만 출력하며, `--execute`를 지정해야 실제 트랜잭션이 커밋된다.
+
+```powershell
+uv run python -m app.maintenance
+uv run python -m app.maintenance --execute
+```
+
+Docker/PostgreSQL 환경에서는 저장소 루트에서 다음처럼 실행하며, 운영 스케줄러에서 하루 한 번 호출할 수 있다.
+
+```powershell
+docker compose run --rm api python -m app.maintenance --execute
+```
+
+보존 기간은 `M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS`, `M_JOURNEY_EXPIRED_AUTH_TOKEN_RETENTION_DAYS`, `M_JOURNEY_AUDIT_LOG_RETENTION_DAYS`로 조정한다.
 
 ## 비밀번호 재설정
 

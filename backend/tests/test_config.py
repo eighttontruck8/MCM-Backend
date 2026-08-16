@@ -90,3 +90,22 @@ def test_openai_provider_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.ai_provider == "openai"
     assert settings.openai_api_key == "test-key"
     assert settings.openai_model == "gpt-4o-mini"
+
+
+def test_retention_configuration(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS", "30")
+    monkeypatch.setenv("M_JOURNEY_EXPIRED_AUTH_TOKEN_RETENTION_DAYS", "2")
+    monkeypatch.setenv("M_JOURNEY_AUDIT_LOG_RETENTION_DAYS", "180")
+
+    settings = load_settings()
+
+    assert settings.visit_personal_data_retention_days == 30
+    assert settings.expired_auth_token_retention_days == 2
+    assert settings.audit_log_retention_days == 180
+
+
+def test_retention_configuration_rejects_non_positive_days(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS", "0")
+
+    with pytest.raises(ValueError, match="1일 이상"):
+        load_settings()

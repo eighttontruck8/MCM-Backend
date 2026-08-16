@@ -38,6 +38,9 @@ class Settings:
     openai_api_key: str | None = field(repr=False)
     openai_model: str
     openai_base_url: str
+    visit_personal_data_retention_days: int
+    expired_auth_token_retention_days: int
+    audit_log_retention_days: int
 
 
 def _normalize_origin(value: str) -> str:
@@ -84,6 +87,17 @@ def load_settings() -> Settings:
     openai_api_key = os.getenv("M_JOURNEY_OPENAI_API_KEY") or None
     if ai_provider == "openai" and not openai_api_key:
         raise ValueError("OpenAI Provider를 사용할 때 M_JOURNEY_OPENAI_API_KEY가 필요합니다.")
+    retention_values = {
+        "M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS": int(
+            os.getenv("M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS", "90")
+        ),
+        "M_JOURNEY_EXPIRED_AUTH_TOKEN_RETENTION_DAYS": int(
+            os.getenv("M_JOURNEY_EXPIRED_AUTH_TOKEN_RETENTION_DAYS", "7")
+        ),
+        "M_JOURNEY_AUDIT_LOG_RETENTION_DAYS": int(os.getenv("M_JOURNEY_AUDIT_LOG_RETENTION_DAYS", "365")),
+    }
+    if any(value < 1 for value in retention_values.values()):
+        raise ValueError("개인정보 보존 기간은 1일 이상이어야 합니다.")
     return Settings(
         environment=environment,
         database_url=os.getenv("M_JOURNEY_DATABASE_URL", "sqlite:///./mjourney.db"),
@@ -115,4 +129,11 @@ def load_settings() -> Settings:
         openai_api_key=openai_api_key,
         openai_model=os.getenv("M_JOURNEY_OPENAI_MODEL", "gpt-4o-mini"),
         openai_base_url=os.getenv("M_JOURNEY_OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/"),
+        visit_personal_data_retention_days=retention_values[
+            "M_JOURNEY_VISIT_PERSONAL_DATA_RETENTION_DAYS"
+        ],
+        expired_auth_token_retention_days=retention_values[
+            "M_JOURNEY_EXPIRED_AUTH_TOKEN_RETENTION_DAYS"
+        ],
+        audit_log_retention_days=retention_values["M_JOURNEY_AUDIT_LOG_RETENTION_DAYS"],
     )
