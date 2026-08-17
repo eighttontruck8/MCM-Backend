@@ -99,14 +99,21 @@ uv run --env-file ../.env.production python -m app.demo_qr --output ../demo-arti
 
 기존 파일은 자동으로 덮어쓰지 않는다. 의도적으로 다시 만들 때만 `--force`를 추가한다. 생성된 SVG는 브라우저에서 열어 원본 비율로 인쇄하고, 실제 휴대폰 카메라로 HTTPS 접속과 체크인 완료까지 확인한다.
 
-### 고객 QR 시연 리허설
+### 고객·직원 QR 시연 리허설
 
-배포 후 아래 명령으로 readiness, QR 태그·프론트 리다이렉트, 고객 로그인, 체크인, PRIVATE 선택, 룩북 생성까지 순서대로 검증한다. 비밀번호와 QR 토큰은 명령행 인자로 받지 않고 `.env.production`에서만 읽는다. 리허설이 만든 체크인은 중간 실패 시에도 취소하며, 기존 활성 체크인이 있으면 임의로 변경하지 않고 중단한다.
+배포 후 아래 명령으로 두 시나리오를 순서대로 검증한다.
+
+- 고객: readiness → QR 태그·프론트 리다이렉트 → 로그인 → 체크인 → PRIVATE → 룩북 → 취소
+- 직원 응대: 고객 동의·응대 요청 → 직원 대기열 → 배정 → AI 가이드 → SERVING → COMPLETED
+
+비밀번호와 QR 토큰은 명령행 인자로 받지 않고 `.env.production`에서만 읽는다. 리허설이 만든 체크인은 중간 실패 시 취소하며, 기존 활성 체크인이 있으면 임의로 변경하지 않고 중단한다.
 
 ```powershell
 cd backend
 uv run --env-file ../.env.production python -m app.demo_rehearsal
 ```
+
+필요하면 `--scenario private` 또는 `--scenario staff`로 한 흐름만 실행한다. 기본값은 `all`이다.
 
 로컬 Docker 환경은 명시적인 로컬 HTTP 허용 옵션으로 검증한다.
 

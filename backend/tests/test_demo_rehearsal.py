@@ -9,8 +9,10 @@ import pytest
 from app.demo_rehearsal import (
     RehearsalConfig,
     RehearsalError,
+    StaffRehearsalConfig,
     _validate_api_base_url,
     run_customer_demo_rehearsal,
+    run_staff_assisted_rehearsal,
 )
 
 
@@ -20,6 +22,14 @@ CONFIG = RehearsalConfig(
     entry_token=TOKEN,
     customer_email="customer@example.com",
     customer_password="demo-password-secret",
+)
+STAFF_CONFIG = StaffRehearsalConfig(
+    frontend_base_url=CONFIG.frontend_base_url,
+    entry_token=CONFIG.entry_token,
+    customer_email=CONFIG.customer_email,
+    customer_password=CONFIG.customer_password,
+    staff_email="staff@example.com",
+    staff_password="demo-password-secret",
 )
 
 
@@ -138,6 +148,106 @@ def test_rehearsal_does_not_cancel_preexisting_active_checkin() -> None:
 
     assert not any(path.endswith("/cancel") for _, path in calls)
     assert ("POST", "/api/v1/auth/logout") in calls
+
+
+def test_staff_assisted_rehearsal_runs_assignment_guide_and_completion() -> None:
+    calls: list[tuple[str, str]] = []
+    login_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal login_count
+        calls.append((request.method, request.url.path))
+        path = request.url.path
+        if path == "/health/ready":
+            return _response(200, {})
+        if path.startswith("/api/v1/entry-tags/"):
+            return _response(200, {"channel": "QR", "store": {"store_id": "S001"}})
+        if path.startswith("/entry/"):
+            return _response(307, None, location=f"https://app.mjourney.test/check-in?tag_token={TOKEN}")
+        if path == "/api/v1/auth/login":
+            login_count += 1
+            role = "CUSTOMER" if login_count == 1 else "STAFF"
+            return _response(
+                200,
+                {
+                    "access_token": f"{role.lower()}-access",
+                    "refresh_token": f"{role.lower()}-refresh",
+                    "user": {"role": role},
+                },
+            )
+        if path == "/api/v1/check-ins":
+            return _response(201, {"checkin_id": "staff-checkin"})
+        if path.endswith("/shopping-mode"):
+            return _response(200, {"shopping_mode": "STAFF_ASSISTED"})
+        if path.endswith("/service-request"):
+            return _response(202, {"status": "WAITING_FOR_STAFF"})
+        if path == "/api/v1/staff/stores/S001/visits":
+            return _response(200, {"items": [{"checkin_id": "staff-checkin", "masked_name": "김**"}]})
+        if path.endswith("/claim"):
+            return _response(200, {"status": "ASSIGNED"})
+        if path.endswith("/guide"):
+            return _response(200, {"recommended_products": [{"product_id": "P001"}]})
+        if path.endswith("/status"):
+            requested_status = json.loads(request.content)["status"]
+            return _response(200, {"status": requested_status})
+        if path == "/api/v1/auth/logout":
+            return _response(200, {})
+        raise AssertionError(f"unexpected request: {request.method} {path}")
+
+    with httpx.Client(base_url="https://api.mjourney.test", transport=httpx.MockTransport(handler)) as client:
+        result = run_staff_assisted_rehearsal(client, STAFF_CONFIG)
+
+    assert result.status == "PASSED"
+    assert result.cleanup == "COMPLETED"
+    assert result.guide_product_count == 1
+    assert result.steps[-2:] == ("VISIT_COMPLETED", "USERS_LOGOUT_REQUESTED")
+    assert not any(path.endswith("/cancel") for _, path in calls)
+    assert calls.count(("POST", "/api/v1/auth/logout")) == 2
+
+
+def test_staff_assisted_rehearsal_cancels_created_visit_on_failure() -> None:
+    calls: list[tuple[str, str]] = []
+    login_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal login_count
+        calls.append((request.method, request.url.path))
+        path = request.url.path
+        if path == "/health/ready":
+            return _response(200, {})
+        if path.startswith("/api/v1/entry-tags/"):
+            return _response(200, {"channel": "QR", "store": {"store_id": "S001"}})
+        if path.startswith("/entry/"):
+            return _response(307, None, location=f"https://app.mjourney.test/check-in?tag_token={TOKEN}")
+        if path == "/api/v1/auth/login":
+            login_count += 1
+            role = "CUSTOMER" if login_count == 1 else "STAFF"
+            return _response(
+                200,
+                {"access_token": role, "refresh_token": f"{role}-refresh", "user": {"role": role}},
+            )
+        if path == "/api/v1/check-ins":
+            return _response(201, {"checkin_id": "staff-checkin"})
+        if path.endswith("/shopping-mode"):
+            return _response(200, {"shopping_mode": "STAFF_ASSISTED"})
+        if path.endswith("/service-request"):
+            return _response(202, {"status": "WAITING_FOR_STAFF"})
+        if path == "/api/v1/staff/stores/S001/visits":
+            return _response(200, {"items": [{"checkin_id": "staff-checkin"}]})
+        if path.endswith("/claim"):
+            return _response(200, {"status": "ASSIGNED"})
+        if path.endswith("/guide"):
+            return _response(503, {"error": {"code": "AI_SERVICE_UNAVAILABLE", "message": "AI 장애"}})
+        if path.endswith("/cancel") or path == "/api/v1/auth/logout":
+            return _response(200, {})
+        raise AssertionError(f"unexpected request: {request.method} {path}")
+
+    with httpx.Client(base_url="https://api.mjourney.test", transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(RehearsalError, match="AI_SERVICE_UNAVAILABLE"):
+            run_staff_assisted_rehearsal(client, STAFF_CONFIG)
+
+    assert ("POST", "/api/v1/check-ins/staff-checkin/cancel") in calls
+    assert calls.count(("POST", "/api/v1/auth/logout")) == 2
 
 
 @pytest.mark.parametrize(
