@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './SignupPage.css';
 
@@ -31,9 +30,15 @@ export default function SignupPage() {
           </section>
 
           <div className="signup-page__tabs" data-node-id="13:1494" data-name="Container">
-            <a href="#" className="signup-page__tab signup-page__tab--inactive" data-node-id="13:1495" data-name="Button">
+            <button
+              type="button"
+              className="signup-page__tab signup-page__tab--inactive"
+              data-node-id="13:1495"
+              data-name="Button"
+              onClick={() => navigate('/login')}
+            >
               로그인
-            </a>
+            </button>
             <button type="button" className="signup-page__tab signup-page__tab--active" data-node-id="13:1498" data-name="Button">
               회원가입
             </button>
@@ -68,15 +73,18 @@ export default function SignupPage() {
               />
             </div>
 
+            {/* [Frontend-01-'인증 이메일 식별자 통일'] 백엔드 로그인 계약과 동일하게 이메일을 사용한다. */}
             <div className="signup-page__field" data-node-id="13:1516" data-name="Input">
-              <label htmlFor="signup-id" className="signup-page__label" data-node-id="13:1517" data-name="Label">
-                아이디
+              <label htmlFor="signup-email" className="signup-page__label" data-node-id="13:1517" data-name="Label">
+                이메일
               </label>
               <input
-                id="signup-id"
-                type="text"
+                id="signup-email"
+                type="email"
                 className="signup-page__input"
-                placeholder="아이디를 입력해주세요"
+                placeholder="customer@example.com"
+                autoComplete="email"
+                required
                 data-node-id="13:1520"
                 data-name="Text Input"
               />

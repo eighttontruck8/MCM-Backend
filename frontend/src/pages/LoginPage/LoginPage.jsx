@@ -88,11 +88,11 @@ export default function LoginPage() {
             onSubmit={handleSubmit}
           >
             <div className="login-page__field" data-node-id="17:24" data-name="Input">
-              <label htmlFor="login-id" className="login-page__label" data-node-id="17:25" data-name="Label">
+              <label htmlFor="login-email" className="login-page__label" data-node-id="17:25" data-name="Label">
                 이메일
               </label>
               <input
-                id="login-id"
+                id="login-email"
                 type="email"
                 className="login-page__input"
                 placeholder="customer@example.com"

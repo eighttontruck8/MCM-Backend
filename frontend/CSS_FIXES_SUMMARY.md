@@ -98,7 +98,7 @@ box-sizing: border-box;
 1. **Mobile Viewport (375px)** - Verify no horizontal overflow
 2. **Tablet Viewport (768px)** - Verify proper spacing
 3. **Desktop Viewport (1024px+)** - Verify layout integrity
-4. **Form Fields** - Verify labels are left-aligned (아이디, 비밀번호)
+4. **Form Fields** - Verify labels are left-aligned (이메일, 비밀번호)
 5. **Context Banner** - Verify "오늘의 AI 컨텍스트" doesn't overflow
 6. **Scrollable Grids** - Verify product grids scroll horizontally without overflow
 
