@@ -104,6 +104,16 @@ export async function login(email, password, remember = false) {
   return tokens;
 }
 
+export async function signupCustomer({ name, phone, email, password }) {
+  const tokens = await apiRequest(
+    '/api/v1/auth/signup',
+    { method: 'POST', body: JSON.stringify({ name, phone, email, password }) },
+    false,
+  );
+  saveAuth(tokens);
+  return tokens;
+}
+
 export function requestPasswordReset(email) {
   return apiRequest(
     '/api/v1/auth/password-reset/request',

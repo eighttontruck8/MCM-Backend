@@ -1,8 +1,46 @@
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { createOrResumeCheckin, signupCustomer } from '../../api/client';
+import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
 import './SignupPage.css';
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const authQuery = searchParams.toString() ? `?${searchParams}` : '';
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setErrorMessage('');
+    if (password !== passwordConfirm) {
+      setErrorMessage('비밀번호가 일치하지 않습니다.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await signupCustomer({ name, phone, email, password });
+      const entryTag = getEntryTag();
+      if (searchParams.get('next') === 'check-in' && entryTag?.tag_token) {
+        const checkin = await createOrResumeCheckin(entryTag.tag_token);
+        saveCheckin({ ...checkin, entry: entryTag });
+        clearEntryTag();
+        navigate('/checkin-complete', { replace: true });
+        return;
+      }
+      navigate('/main', { replace: true });
+    } catch (error) {
+      setErrorMessage(error.message || '회원가입하지 못했습니다.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="signup-page" data-node-id="13:1475" data-name="회원가입">
@@ -35,7 +73,7 @@ export default function SignupPage() {
               className="signup-page__tab signup-page__tab--inactive"
               data-node-id="13:1495"
               data-name="Button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate(`/login${authQuery}`)}
             >
               로그인
             </button>
@@ -44,7 +82,7 @@ export default function SignupPage() {
             </button>
           </div>
 
-          <form className="signup-page__form" data-node-id="13:1503" data-name="Container">
+          <form className="signup-page__form" data-node-id="13:1503" data-name="Container" onSubmit={handleSubmit}>
             <div className="signup-page__field" data-node-id="13:1504" data-name="Input">
               <label htmlFor="signup-name" className="signup-page__label" data-node-id="13:1505" data-name="Label">
                 이름
@@ -54,6 +92,11 @@ export default function SignupPage() {
                 type="text"
                 className="signup-page__input"
                 placeholder="홍길동"
+                autoComplete="name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                minLength={2}
+                required
                 data-node-id="13:1508"
                 data-name="Text Input"
               />
@@ -68,6 +111,11 @@ export default function SignupPage() {
                 type="tel"
                 className="signup-page__input"
                 placeholder="010-0000-0000"
+                autoComplete="tel"
+                value={phone}
+                onChange={(event) => setPhone(event.target.value)}
+                pattern="01[016789]-?[0-9]{3,4}-?[0-9]{4}"
+                required
                 data-node-id="13:1514"
                 data-name="Phone Input"
               />
@@ -84,6 +132,8 @@ export default function SignupPage() {
                 className="signup-page__input"
                 placeholder="customer@example.com"
                 autoComplete="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
                 required
                 data-node-id="13:1520"
                 data-name="Text Input"
@@ -98,23 +148,44 @@ export default function SignupPage() {
                 id="signup-password"
                 type="password"
                 className="signup-page__input"
-                placeholder="••••••••"
+                placeholder="12자 이상"
+                autoComplete="new-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                minLength={12}
+                required
                 data-node-id="13:1526"
                 data-name="Password Input"
               />
             </div>
+
+            <div className="signup-page__field">
+              <label htmlFor="signup-password-confirm" className="signup-page__label">
+                비밀번호 확인
+              </label>
+              <input
+                id="signup-password-confirm"
+                type="password"
+                className="signup-page__input"
+                placeholder="비밀번호를 다시 입력해주세요"
+                autoComplete="new-password"
+                value={passwordConfirm}
+                onChange={(event) => setPasswordConfirm(event.target.value)}
+                minLength={12}
+                required
+              />
+            </div>
+
+            {errorMessage && <p className="signup-page__error" role="alert">{errorMessage}</p>}
 
             <button
               type="submit"
               className="signup-page__submit"
               data-node-id="13:1528"
               data-name="Container"
-              onClick={(event) => {
-                event.preventDefault();
-                navigate('/login');
-              }}
+              disabled={isSubmitting}
             >
-              가입하기
+              {isSubmitting ? '가입 중...' : '가입하기'}
             </button>
           </form>
         </div>

@@ -13,6 +13,7 @@ class Customer(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)
     membership: Mapped[str] = mapped_column(String(30), default="일반")
     visit_count: Mapped[int] = mapped_column(Integer, default=0)
     preferred_colors: Mapped[list[str]] = mapped_column(JSON, default=list)

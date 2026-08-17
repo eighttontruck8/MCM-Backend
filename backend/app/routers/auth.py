@@ -8,15 +8,17 @@ from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_user
 from app.errors import DomainError
-from app.models import PasswordResetToken, RefreshToken, Staff, User
+from app.models import Customer, PasswordResetToken, RefreshToken, Staff, User
 from app.schemas import (
     AuthUserResponse,
+    CustomerSignupRequest,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -58,6 +60,50 @@ def issue_tokens(user: User, request: Request, db: Session) -> TokenResponse:
     db.add(RefreshToken(id=refresh_id, user_id=user.id, token_hash=token_hash(refresh_token), expires_at=refresh_expires_at))
     db.commit()
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, expires_in=access_minutes * 60, user=user_response(user, staff))
+
+
+@router.post("/auth/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def signup(body: CustomerSignupRequest, request: Request, db: DbSession) -> TokenResponse:
+    """고객 프로필과 인증 계정을 함께 생성하고 즉시 로그인한다."""
+    # [Backend-11-'고객 셀프 회원가입'] 프로필과 User를 같은 트랜잭션으로 생성해 불완전 계정을 막는다.
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("signup", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
+    if db.scalar(select(User.id).where(User.email == body.email)) is not None:
+        raise DomainError(409, "EMAIL_ALREADY_REGISTERED", "이미 가입된 이메일입니다.")
+    if db.scalar(select(Customer.id).where(Customer.phone == body.phone)) is not None:
+        raise DomainError(409, "PHONE_ALREADY_REGISTERED", "이미 가입된 연락처입니다.")
+
+    now = utc_now()
+    customer_id = f"C{secrets.token_hex(8)}"
+    customer = Customer(id=customer_id, name=body.name, phone=body.phone)
+    user = User(
+        id=customer_id,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=UserRole.CUSTOMER.value,
+        display_name=body.name,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add_all([customer, user])
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise DomainError(409, "ACCOUNT_ALREADY_REGISTERED", "이미 가입된 계정 정보입니다.") from None
+    record_audit(
+        db,
+        request,
+        action="AUTH_SIGNUP_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": UserRole.CUSTOMER.value},
+    )
+    return issue_tokens(user, request, db)
 
 
 def stored_refresh_token(raw_token: str, request: Request, db: Session) -> tuple[dict, RefreshToken]:

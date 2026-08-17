@@ -75,7 +75,7 @@ export default function LoginPage() {
               className="login-page__tab login-page__tab--inactive"
               data-node-id="17:22"
               data-name="Button"
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate(`/signup${searchParams.toString() ? `?${searchParams}` : ''}`)}
             >
               회원가입
             </button>

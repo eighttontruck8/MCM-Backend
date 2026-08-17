@@ -158,6 +158,8 @@ uv run python -m pytest
 
 ## 인증과 체크인 시연
 
+고객은 `POST /api/v1/auth/signup`으로 이름, 연락처, 이메일, 12자 이상의 비밀번호를 제출해 가입할 수 있다. 가입 시 고객 프로필과 인증 계정을 한 트랜잭션으로 생성하고 Access/Refresh Token을 반환한다. 이메일과 연락처는 중복 가입할 수 없으며 직원 계정은 이 API로 생성하지 않는다.
+
 Seed 계정:
 
 - 고객: `customer@example.com`, `customer2@example.com`

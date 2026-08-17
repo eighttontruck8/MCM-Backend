@@ -14,7 +14,7 @@ from starlette.websockets import WebSocketDisconnect
 from sqlalchemy import select
 
 from app.main import create_app
-from app.models import AuditLog, Consent, PasswordResetToken, Recommendation, StaffAssignment
+from app.models import AuditLog, Consent, Customer, PasswordResetToken, Recommendation, StaffAssignment, User
 from app.security import token_hash
 
 TEST_PASSWORD = "test-password-1234"
@@ -131,6 +131,84 @@ def test_health_and_seed_catalog() -> None:
         products = client.get("/api/v1/products", params={"store_id": "S001", "in_stock": True})
         assert products.status_code == 200
         assert len(products.json()["items"]) == 5
+
+
+def test_customer_signup_creates_profile_and_login_account() -> None:
+    with make_client() as client:
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "name": " 신규 고객 ",
+                "phone": "010-1234-5678",
+                "email": "New.Customer@Example.com",
+                "password": "new-customer-password",
+            },
+        )
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["user"]["role"] == "CUSTOMER"
+        assert payload["user"]["display_name"] == "신규 고객"
+        assert payload["access_token"]
+        customer_id = payload["user"]["id"]
+
+        with client.app.state.database.session_factory() as session:
+            assert session.get(User, customer_id).email == "new.customer@example.com"
+            customer = session.get(Customer, customer_id)
+            assert customer.name == "신규 고객"
+            assert customer.phone == "01012345678"
+            assert session.scalar(
+                select(AuditLog).where(
+                    AuditLog.action == "AUTH_SIGNUP_COMPLETED",
+                    AuditLog.actor_id == customer_id,
+                )
+            ) is not None
+
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "NEW.CUSTOMER@example.com", "password": "new-customer-password"},
+        )
+        assert login_response.status_code == 200
+        assert login_response.json()["user"]["id"] == customer_id
+
+
+def test_customer_signup_rejects_duplicate_email_and_phone() -> None:
+    with make_client() as client:
+        signup = {
+            "name": "신규 고객",
+            "phone": "01012345678",
+            "email": "new-customer@example.com",
+            "password": "new-customer-password",
+        }
+        assert client.post("/api/v1/auth/signup", json=signup).status_code == 201
+
+        duplicate_email = client.post(
+            "/api/v1/auth/signup",
+            json={**signup, "phone": "01087654321"},
+        )
+        assert duplicate_email.status_code == 409
+        assert duplicate_email.json()["error"]["code"] == "EMAIL_ALREADY_REGISTERED"
+
+        duplicate_phone = client.post(
+            "/api/v1/auth/signup",
+            json={**signup, "email": "other-customer@example.com"},
+        )
+        assert duplicate_phone.status_code == 409
+        assert duplicate_phone.json()["error"]["code"] == "PHONE_ALREADY_REGISTERED"
+
+
+def test_customer_signup_validates_contact_and_password() -> None:
+    with make_client() as client:
+        response = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "name": "고객",
+                "phone": "1234",
+                "email": "not-an-email",
+                "password": "short",
+            },
+        )
+        assert response.status_code == 422
 
 
 def test_qr_entry_validation_redirect_and_nfc_compatibility() -> None:

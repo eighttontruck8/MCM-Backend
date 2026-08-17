@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiModel(BaseModel):
@@ -47,6 +47,31 @@ class EntryChannel(StrEnum):
 class LoginRequest(ApiModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=8, max_length=200)
+
+
+class CustomerSignupRequest(ApiModel):
+    name: str = Field(min_length=2, max_length=100)
+    phone: str = Field(min_length=10, max_length=13, pattern=r"^01[016789]-?\d{3,4}-?\d{4}$")
+    email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=12, max_length=200)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 2:
+            raise ValueError("이름은 2자 이상이어야 합니다.")
+        return normalized
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: str) -> str:
+        return value.replace("-", "")
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
 
 
 class RefreshRequest(ApiModel):

@@ -176,6 +176,13 @@
   color: rgba(10, 10, 10, 0.5);
 }
 
+.signup-page__error {
+  margin: 0;
+  color: #a33;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .signup-page__submit {
   width: 336.718px;
   height: 49.972px;
@@ -189,4 +196,9 @@
   letter-spacing: 2.16px;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.signup-page__submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
