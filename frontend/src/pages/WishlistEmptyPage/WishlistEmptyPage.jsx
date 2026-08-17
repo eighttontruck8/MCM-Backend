@@ -1,4 +1,3 @@
-import React from 'react';
 import './WishlistEmptyPage.css';
 
 export default function WishlistEmptyPage() {

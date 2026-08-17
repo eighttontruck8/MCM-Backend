@@ -5,13 +5,13 @@
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  min-height: 100vh;
 }
 
 .product-image { background-position: center; background-size: cover; }
-.recommend-state { padding: 24px 0; color: #7a746e; font-family: 'DM Sans', sans-serif; font-size: 13px; }
+.recommend-state { margin: 0; padding: 24px var(--page-gutter); color: #7a746e; font-family: 'DM Sans', sans-serif; font-size: var(--font-body); line-height: 1.6; }
 .recommend-state--error { color: #b42318; }
 .recommend-favorite { margin-top: 10px; border: 0; background: transparent; color: #7a746e; cursor: pointer; font-size: 11px; }
-.main-recommend-page__nav .nav-item { border: 0; background: transparent; cursor: pointer; }
 
 .main-recommend-page__body {
   width: 100%;
@@ -19,11 +19,12 @@
   background-color: #fafaf8;
   box-sizing: border-box;
   min-width: 0;
+  min-height: 100vh;
 }
 
 .main-recommend-page__app {
   box-shadow: 0 0 30px rgba(0,0,0,0.12);
-  min-height: 874px;
+  min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
   display: flex;
@@ -34,7 +35,7 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
+  flex: 1;
   box-sizing: border-box;
   overflow-y: auto;
 }
@@ -88,10 +89,9 @@
 }
 
 .main-recommend-page__title {
-  font-family: 'Fraunces', serif;
-  font-style: italic;
-  font-weight: 300;
-  font-size: clamp(22px, 6vw, 28px);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 24px;
   margin: 0 0 16px 0;
   line-height: 1.1;
   overflow-wrap: anywhere;
@@ -230,7 +230,7 @@
 .section-label {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
-  font-size: 9px;
+  font-size: var(--font-supporting);
   color: #7a746e;
   text-transform: uppercase;
   letter-spacing: 1.62px;
@@ -299,8 +299,8 @@
 }
 
 .product-meta .name {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(11px, 3vw, 14px);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--font-feature);
   color:#0a0a0a;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -341,8 +341,9 @@
 }
 
 .popular-title {
-  font-family: 'Fraunces', serif;
-  font-size: clamp(16px, 5vw, 20px);
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--font-feature);
+  font-weight: 600;
   margin:6px 0 0;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -376,7 +377,7 @@
 }
 
 .popular-meta .brand { font-size:clamp(8px, 2vw, 9px); color:#7a746e; text-transform:uppercase; overflow-wrap:anywhere; word-break:break-word; }
-.popular-meta .name { font-family:'Fraunces', serif; font-size:clamp(11px, 3vw, 13px); line-height:1.25; overflow-wrap:anywhere; word-break:break-word; }
+.popular-meta .name { font-family:'DM Sans', sans-serif; font-size:var(--font-body); line-height:1.25; overflow-wrap:anywhere; word-break:break-word; }
 .popular-meta .price { font-weight:500; font-size:clamp(10px, 3vw, 12px); overflow-wrap:anywhere; word-break:break-word; }
 
 .main-recommend-page__cta {
@@ -405,15 +406,3 @@
   padding:8px 12px;
   cursor:pointer;
 }
-
-.main-recommend-page__nav {
-  display: flex;
-  justify-content: space-around;
-  padding: 12px 0;
-  border-top: 1px solid #eee;
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: auto;
-}
-
-.main-recommend-page__nav .nav-item { font-size:12px; color:#7a746e; }

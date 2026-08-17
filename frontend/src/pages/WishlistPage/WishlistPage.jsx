@@ -1,10 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './WishlistPage.css';
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function WishlistPage() {
-  const navigate = useNavigate();
   const { items, toggle, isLoading, pendingProductId, errorMessage } = useWishlist();
 
   return (
@@ -37,12 +36,7 @@ export default function WishlistPage() {
             </ul>
           )}
         </main>
-        <nav className="wishlist-bottomnav">
-          <button type="button" className="nav" onClick={() => navigate('/main')}>홈</button>
-          <button type="button" className="nav" onClick={() => navigate('/lookbook')}>룩북</button>
-          <button type="button" className="nav nav--active">찜</button>
-          <button type="button" className="nav" onClick={() => navigate('/mypage')}>MY</button>
-        </nav>
+        <AppBottomNav active="wishlist" />
       </div>
     </div>
   );

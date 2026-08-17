@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clearAuth, fetchMyProfile, fetchPurchases } from '../../api/client';
+import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './MyPage.css';
 
@@ -12,6 +13,8 @@ export default function MyPage() {
   const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const preferenceTags = [customer?.preferred_style, ...(customer?.preferred_colors ?? [])]
+    .filter((tag) => tag && tag !== '미정');
 
   useEffect(() => {
     const timer = window.setTimeout(async () => {
@@ -29,6 +32,7 @@ export default function MyPage() {
   }, []);
 
   const logout = () => {
+    if (!window.confirm(`${customer?.name ?? '고객'}님, 로그아웃 하시겠습니까?`)) return;
     clearAuth();
     navigate('/login', { replace: true });
   };
@@ -55,7 +59,9 @@ export default function MyPage() {
             <section className="tags-section">
               <div className="section-title">AI 분석 취향 프로필</div>
               <div className="tags">
-                {[customer?.preferred_style, ...(customer?.preferred_colors ?? [])].filter(Boolean).map((tag) => <span key={tag} className="tag">{tag}</span>)}
+                {preferenceTags.length
+                  ? preferenceTags.map((tag) => <span key={tag} className="tag">{tag}</span>)
+                  : <p className="my-page__empty">아직 분석된 취향 정보가 없습니다.</p>}
               </div>
             </section>
             <section className="recent-section">
@@ -71,6 +77,7 @@ export default function MyPage() {
                   </li>
                 ))}
               </ul>
+              {!purchases.length && <p className="my-page__empty">최근 구매 이력이 없습니다.</p>}
             </section>
           </>
         )}
@@ -78,12 +85,7 @@ export default function MyPage() {
           <button type="button" className="setting">개인정보 처리방침</button>
           <button type="button" className="setting" onClick={logout}>로그아웃</button>
         </section>
-        <nav className="bottom-nav">
-          <button type="button" className="nav" onClick={() => navigate('/main')}>홈</button>
-          <button type="button" className="nav" onClick={() => navigate('/lookbook')}>룩북</button>
-          <button type="button" className="nav" onClick={() => navigate('/wishlist')}>찜</button>
-          <button type="button" className="nav nav--active">MY</button>
-        </nav>
+        <AppBottomNav active="mypage" />
       </div>
     </div>
   );

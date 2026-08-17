@@ -29,7 +29,7 @@
   box-sizing: border-box;
 }
 
-.brand {
+.my-header .brand {
   font-family: 'Fraunces', serif;
   font-size: 18px;
   color: #0a0a0a;
@@ -113,10 +113,11 @@
   background: #fff;
 }
 
-.section-title {
-  font-size: 12px;
-  color: #7a746e;
-  margin-bottom: 8px;
+.my-page .section-title {
+  font-size: var(--font-feature);
+  font-weight: 600;
+  color: #0a0a0a;
+  margin-bottom: 12px;
 }
 
 .tags {
@@ -125,7 +126,7 @@
   flex-wrap: wrap;
 }
 
-.tag {
+.my-page .tag {
   border: 1px solid #e8e3dc;
   background: #fff;
   padding: 8px 10px;
@@ -155,7 +156,8 @@
 }
 
 .recent-name {
-  font-size: 14px;
+  font-size: var(--font-body);
+  font-weight: 500;
 }
 
 .recent-date {
@@ -174,6 +176,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 6px;
 }
 
 .setting {
@@ -184,34 +187,16 @@
   border-top: 1px solid #f0ece7;
   width: 100%;
   box-sizing: border-box;
-}
-
-.bottom-nav {
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 10px 0 12px;
-  background: #fff;
-  border-top: 1px solid #e8e3dc;
-  margin-top: auto;
-  box-sizing: border-box;
-}
-
-.nav {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #7a746e;
-  font-size: 12px;
-  padding: 8px 0 0;
-  box-sizing: border-box;
+  color: #8b847c;
+  font-size: var(--font-supporting);
   cursor: pointer;
 }
 
-.nav--active {
-  color: #0a0a0a;
-  font-weight: 700;
+.my-page__empty {
+  margin: 0;
+  color: #8b847c;
+  font-size: var(--font-supporting);
+  line-height: 1.6;
 }
 
 @media (max-width: 420px) {

@@ -54,6 +54,7 @@ export const fetchProductById = async (productId) => {
 
 // 4. AI 추천 데이터를 불러오는 함수
 export const fetchAiRecommendation = async (customerId) => {
+  void customerId;
   return new Promise((resolve) => {
     // AI가 분석하는 시간을 모방하기 위해 1.2초 지연시킵니다.
     setTimeout(() => {
@@ -75,5 +76,6 @@ const mockLookbookData = {
 
 // 가상의 룩북 API 호출 함수입니다.
 export const fetchLookbook = async (customerId) => {
+  void customerId;
   return new Promise((resolve) => setTimeout(() => resolve(mockLookbookData), 1000));
 };

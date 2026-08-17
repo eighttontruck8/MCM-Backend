@@ -8,8 +8,8 @@
 
 .lookbook-card { border: 0; padding: 0; text-align: left; cursor: pointer; }
 .lookbook-card__image { background-position: center; background-size: cover; }
-.lookbook-intro__copy, .lookbook-state { color: #7a746e; font-size: 12px; line-height: 1.6; }
-.lookbook-state { padding: 24px; }
+.lookbook-intro__copy, .lookbook-state { color: #7a746e; font-size: var(--font-body); line-height: 1.6; }
+.lookbook-state { margin: 0; padding: 24px var(--page-gutter); }
 .lookbook-state--error { color: #b42318; }
 
 .lookbook-page__container {
@@ -20,6 +20,11 @@
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+.lookbook-content {
+  width: 100%;
+  flex: 1;
 }
 
 .lookbook-header {
@@ -61,11 +66,26 @@
 }
 
 .lookbook-intro__title {
-  font-family: 'Fraunces', serif;
-  font-size: 28px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
   margin: 6px 0 0;
   color: #0a0a0a;
   line-height: 1.2;
+}
+
+.lookbook-empty {
+  padding-bottom: 32px;
+}
+
+.lookbook-empty__button {
+  margin: 0 var(--page-gutter);
+  border: 1px solid #0a0a0a;
+  background: #0a0a0a;
+  color: #fff;
+  padding: 12px 16px;
+  font-size: var(--font-body);
+  cursor: pointer;
 }
 
 .lookbook-grid {
@@ -139,33 +159,6 @@
   margin-top: 4px;
 }
 
-.lookbook-bottomnav {
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 10px 0 12px;
-  background: #fff;
-  border-top: 1px solid #e8e3dc;
-  margin-top: auto;
-  box-sizing: border-box;
-}
-
-.nav-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  font-size: 12px;
-  color: #7a746e;
-  padding: 8px 0 0;
-  box-sizing: border-box;
-  cursor: pointer;
-}
-
-.nav-btn--active {
-  color: #0a0a0a;
-  font-weight: 700;
-}
 
 @media (max-width: 420px) {
   .lookbook-page__container {

@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
+import { getAccessToken } from './api/client';
 
 // ==========================================
 // 기존 고객용 화면 컴포넌트 불러오기 (유지)
@@ -34,6 +35,14 @@ import StaffRecommendation from './staffPages/Recommendation/StaffRecommendation
 import StaffWaiting from './staffPages/Waiting/StaffWaiting';
 import StaffAnalysis from './staffPages/Analysis/StaffAnalysis';
 
+// [Frontend-07-'보호 화면 인증 가드'] 기술적인 Bearer 오류 대신 로그인 화면과 사용자 문구를 제공한다.
+function RequireAuth({ children }) {
+  if (!getAccessToken()) {
+    return <Navigate to="/login?reason=auth-required" replace />;
+  }
+  return children;
+}
+
 // ==========================================
 // 전체 앱 라우팅 
 // ==========================================
@@ -51,34 +60,34 @@ function App() {
         {/* 2. 체크인 & 오프라인 연동 흐름 */}
         <Route path="/check-in" element={<NfcLoadingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/checkin-complete" element={<CheckInCompletePage />} />
-        <Route path="/shopping-option" element={<ShoppingOptionPage />} />
-        <Route path="/visit-info" element={<VisitInfoPage />} />
-        <Route path="/visit-info-complete" element={<VisitInfoCompletePage />} />
-        <Route path="/staff-assignment" element={<StaffAssignmentPage />} />
+        <Route path="/checkin-complete" element={<RequireAuth><CheckInCompletePage /></RequireAuth>} />
+        <Route path="/shopping-option" element={<RequireAuth><ShoppingOptionPage /></RequireAuth>} />
+        <Route path="/visit-info" element={<RequireAuth><VisitInfoPage /></RequireAuth>} />
+        <Route path="/visit-info-complete" element={<RequireAuth><VisitInfoCompletePage /></RequireAuth>} />
+        <Route path="/staff-assignment" element={<RequireAuth><StaffAssignmentPage /></RequireAuth>} />
 
         {/* 3. 메인 서비스 */}
-        <Route path="/main" element={<MainRecommendPage />} />
-        <Route path="/all-recommend" element={<AllRecommendPage />} />
-        <Route path="/lookbook" element={<LookbookPage />} />
-        <Route path="/look-detail" element={<LookDetailPage />} />
+        <Route path="/main" element={<RequireAuth><MainRecommendPage /></RequireAuth>} />
+        <Route path="/all-recommend" element={<RequireAuth><AllRecommendPage /></RequireAuth>} />
+        <Route path="/lookbook" element={<RequireAuth><LookbookPage /></RequireAuth>} />
+        <Route path="/look-detail" element={<RequireAuth><LookDetailPage /></RequireAuth>} />
         <Route path="/wishlist-empty" element={<Navigate to="/wishlist" replace />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/mypage" element={<MyPage />} />
+        <Route path="/wishlist" element={<RequireAuth><WishlistPage /></RequireAuth>} />
+        <Route path="/mypage" element={<RequireAuth><MyPage /></RequireAuth>} />
 
         {/* ========================================== */}
         {/* 4. 직원용 서비스 */}
         {/* ========================================== */}
-        <Route path="/staff" element={<StaffDashboard />} />
-        <Route path="/staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/recommend" element={<StaffRecommendation />} />
-        <Route path="/staff/waiting" element={<StaffWaiting />} />
-        <Route path="/staff/analysis" element={<StaffAnalysis />} />
+        <Route path="/staff" element={<RequireAuth><StaffDashboard /></RequireAuth>} />
+        <Route path="/staff/dashboard" element={<RequireAuth><StaffDashboard /></RequireAuth>} />
+        <Route path="/staff/recommend" element={<RequireAuth><StaffRecommendation /></RequireAuth>} />
+        <Route path="/staff/waiting" element={<RequireAuth><StaffWaiting /></RequireAuth>} />
+        <Route path="/staff/analysis" element={<RequireAuth><StaffAnalysis /></RequireAuth>} />
 
         {/* 기존 경로 호환성 유지 */}
-        <Route path="/waiting" element={<StaffWaiting />} />
-        <Route path="/staffpage" element={<StaffWaiting />} />
-        <Route path="/staff-page" element={<StaffWaiting />} />
+        <Route path="/waiting" element={<RequireAuth><StaffWaiting /></RequireAuth>} />
+        <Route path="/staffpage" element={<RequireAuth><StaffWaiting /></RequireAuth>} />
+        <Route path="/staff-page" element={<RequireAuth><StaffWaiting /></RequireAuth>} />
 
         {/* 5. 404 에러 처리 */}
         <Route path="*" element={<div style={{ padding: '20px', textAlign: 'center' }}>요청하신 페이지를 찾을 수 없습니다.</div>} />

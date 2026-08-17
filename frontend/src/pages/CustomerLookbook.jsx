@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchLookbook, fetchProductById } from '../api/mockApi';
 
 const CustomerLookbook = ({ customerId = "C001" }) => {

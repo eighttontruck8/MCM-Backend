@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMyProfile, fetchRecommendations } from '../../api/client';
+import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './MainRecommendPage.css';
 
@@ -85,12 +86,7 @@ export default function MainRecommendPage() {
                 <button type="button" className="cta-button" onClick={() => navigate('/lookbook')}>룩북 보러가기</button>
               </div>
             </footer>
-            <nav className="main-recommend-page__nav">
-              <button type="button" className="nav-item" onClick={() => navigate('/main')}>홈</button>
-              <button type="button" className="nav-item" onClick={() => navigate('/lookbook')}>룩북</button>
-              <button type="button" className="nav-item" onClick={() => navigate('/wishlist')}>찜</button>
-              <button type="button" className="nav-item" onClick={() => navigate('/mypage')}>MY</button>
-            </nav>
+            <AppBottomNav active="home" />
           </div>
         </div>
       </div>

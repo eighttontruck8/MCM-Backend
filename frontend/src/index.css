@@ -2,14 +2,45 @@
   box-sizing: border-box;
 }
 
+:root {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: #0a0a0a;
+  --page-gutter: 20px;
+  --font-supporting: 11px;
+  --font-body: 13px;
+  --font-feature: 15px;
+}
+
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
+  min-height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: var(--font-supporting);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 #root {
   width: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+}
+
+#root * {
+  font-family: 'DM Sans', sans-serif;
+}
+
+@media (max-width: 430px) {
+  :root {
+    --page-gutter: 16px;
+  }
 }

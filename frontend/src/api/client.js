@@ -88,8 +88,15 @@ async function apiRequest(path, options = {}, retryOnUnauthorized = true) {
   if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-  if (response.status === 401 && retryOnUnauthorized && await refreshAuth()) {
-    return apiRequest(path, options, false);
+  if (response.status === 401 && retryOnUnauthorized) {
+    if (await refreshAuth()) return apiRequest(path, options, false);
+    clearAuth();
+    if (window.location.pathname !== '/login') {
+      window.location.replace('/login?reason=auth-required');
+    }
+    throw new ApiError(401, {
+      error: { code: 'AUTHENTICATION_REQUIRED', message: '서비스 이용은 로그인이 필요합니다.' },
+    });
   }
   return parseResponse(response);
 }

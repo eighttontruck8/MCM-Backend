@@ -46,9 +46,10 @@
 
 .wishlist-main {
   width: 100%;
-  padding: 18px 12px 80px;
+  padding: 18px var(--page-gutter) 40px;
   background: #fff;
   box-sizing: border-box;
+  flex: 1;
 }
 
 .wishlist-main__eyebrow {
@@ -59,8 +60,9 @@
 }
 
 .wishlist-main__title {
-  font-family: 'Fraunces', serif;
-  font-size: 28px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 600;
   margin: 6px 0;
   color: #0a0a0a;
   line-height: 1.2;
@@ -132,7 +134,7 @@
   margin-top: 8px;
 }
 
-.tag {
+.wishlist-page .tag {
   display: inline-block;
   background: #1b120d;
   color: #fff;
@@ -155,38 +157,10 @@
 }
 
 .wishlist-empty-state {
-  padding: 20px 8px;
+  padding: 24px 0;
   color: #7a746e;
-  font-size: 14px;
+  font-size: var(--font-body);
   text-align: center;
-}
-
-.wishlist-bottomnav {
-  width: 100%;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 10px 0 12px;
-  background: #fff;
-  border-top: 1px solid #e8e3dc;
-  margin-top: auto;
-  box-sizing: border-box;
-}
-
-.nav {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #7a746e;
-  font-size: 12px;
-  padding: 8px 0 0;
-  box-sizing: border-box;
-  cursor: pointer;
-}
-
-.nav--active {
-  color: #0a0a0a;
-  font-weight: 700;
 }
 
 @media (max-width: 420px) {
@@ -196,7 +170,7 @@
 
   .wishlist-header,
   .wishlist-main {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: var(--page-gutter);
+    padding-right: var(--page-gutter);
   }
 }
