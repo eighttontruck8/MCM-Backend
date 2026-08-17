@@ -51,8 +51,8 @@ def test_render_blueprint_connects_api_frontend_and_postgres() -> None:
 
     assert frontend["runtime"] == "static"
     assert frontend["rootDir"] == "frontend"
-    # Render의 staticPublishPath는 rootDir가 아닌 저장소 루트를 기준으로 한다.
-    assert frontend["staticPublishPath"] == "frontend/dist"
+    # 이 Blueprint에서는 rootDir=frontend가 적용되므로 빌드 결과인 dist를 바로 게시한다.
+    assert frontend["staticPublishPath"] == "dist"
     assert frontend["routes"] == [{"type": "rewrite", "source": "/*", "destination": "/index.html"}]
     frontend_environment = {item["key"]: item for item in frontend["envVars"]}
     assert frontend_environment["VITE_API_BASE_URL"]["value"] == (
