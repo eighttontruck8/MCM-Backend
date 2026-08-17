@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from urllib.parse import urlsplit
 
 from app.config import Settings, load_settings
+from app.database import normalize_database_url
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,9 +60,10 @@ def validate_production_deployment(
     frontend_origin = _production_origin(settings.frontend_base_url, "M_JOURNEY_FRONTEND_BASE_URL")
     for cors_origin in settings.cors_origins:
         _production_origin(cors_origin, "M_JOURNEY_CORS_ORIGINS")
-    parsed_database = urlsplit(settings.database_url)
+    normalized_database_url = normalize_database_url(settings.database_url)
+    parsed_database = urlsplit(normalized_database_url)
     if (
-        not settings.database_url.startswith("postgresql+psycopg://")
+        not normalized_database_url.startswith("postgresql+psycopg://")
         or not parsed_database.hostname
         or not parsed_database.username
         or _is_placeholder(parsed_database.password)

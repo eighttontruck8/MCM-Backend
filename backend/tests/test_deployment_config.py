@@ -27,6 +27,47 @@ def test_api_image_runs_migrations_as_non_root_user() -> None:
     assert "uv sync --frozen --no-dev" in dockerfile
     assert "USER appuser" in dockerfile
     assert "alembic upgrade head && exec uvicorn" in dockerfile
+    assert "${PORT:-8000}" in dockerfile
+
+
+def test_render_blueprint_connects_api_frontend_and_postgres() -> None:
+    blueprint = yaml.safe_load((REPOSITORY_ROOT / "render.yaml").read_text(encoding="utf-8"))
+    services = {service["name"]: service for service in blueprint["services"]}
+    api = services["mjourney-api-eighttontruck8"]
+    frontend = services["mjourney-web-eighttontruck8"]
+
+    assert api["runtime"] == "docker"
+    assert api["rootDir"] == "backend"
+    assert api["healthCheckPath"] == "/health/ready"
+    assert api["plan"] == "free"
+    api_environment = {item["key"]: item for item in api["envVars"]}
+    assert api_environment["M_JOURNEY_DATABASE_URL"]["fromDatabase"] == {
+        "name": "mjourney-db-eighttontruck8",
+        "property": "connectionString",
+    }
+    assert api_environment["M_JOURNEY_DEMO_PASSWORD"]["sync"] is False
+    assert api_environment["M_JOURNEY_DEMO_QR_TOKEN"]["sync"] is False
+    assert api_environment["M_JOURNEY_JWT_SECRET"]["generateValue"] is True
+
+    assert frontend["runtime"] == "static"
+    assert frontend["rootDir"] == "frontend"
+    assert frontend["staticPublishPath"] == "dist"
+    assert frontend["routes"] == [{"type": "rewrite", "source": "/*", "destination": "/index.html"}]
+    frontend_environment = {item["key"]: item for item in frontend["envVars"]}
+    assert frontend_environment["VITE_API_BASE_URL"]["value"] == (
+        "https://mjourney-api-eighttontruck8.onrender.com"
+    )
+
+    assert blueprint["databases"] == [
+        {
+            "name": "mjourney-db-eighttontruck8",
+            "plan": "free",
+            "region": "singapore",
+            "databaseName": "mjourney",
+            "user": "mjourney",
+            "ipAllowList": [],
+        }
+    ]
 
 
 def test_production_environment_templates_share_public_api_contract() -> None:

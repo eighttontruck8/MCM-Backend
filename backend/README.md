@@ -70,6 +70,27 @@ $env:M_JOURNEY_CORS_ORIGINS='https://shop.example.com,https://staff.example.com'
 
 운영 모드는 와일드카드, HTTP, localhost, 경로가 포함된 주소를 거부한다. `M_JOURNEY_FRONTEND_BASE_URL`도 QR 진입 리다이렉트 안전성을 위해 CORS 허용 목록에 포함되어야 한다. 허용 요청 헤더는 `Authorization`, `Content-Type`, `X-Request-ID`이며 응답에서는 `X-Request-ID`, `Retry-After`를 프론트에 노출한다.
 
+### Render Blueprint 배포
+
+저장소 루트의 `render.yaml`은 무료 플랜 기준으로 다음 리소스를 함께 만든다.
+
+- `mjourney-api-eighttontruck8`: Docker FastAPI 서비스
+- `mjourney-web-eighttontruck8`: React/Vite 정적 사이트
+- `mjourney-db-eighttontruck8`: PostgreSQL
+
+Render Dashboard에서 **New > Blueprint**를 선택하고 GitHub의 `eighttontruck8/MCM-Backend` 저장소를 연결한다. 초기 생성 화면에서 다음 두 비밀값만 직접 입력한다.
+
+- `M_JOURNEY_DEMO_PASSWORD`: 12자 이상의 데모 로그인 비밀번호
+- `M_JOURNEY_DEMO_QR_TOKEN`: 영문·숫자·`-`·`_`만 사용한 24자 이상의 임의 문자열
+
+JWT secret은 Render가 자동 생성하고, API URL·프론트 URL·CORS와 DB 연결은 Blueprint가 연결한다. 첫 API 시작 시 Alembic migration 후 데모 seed가 입력된다. 배포가 끝나면 다음 주소를 확인한다.
+
+- 프론트: <https://mjourney-web-eighttontruck8.onrender.com>
+- API 준비 상태: <https://mjourney-api-eighttontruck8.onrender.com/health/ready>
+- API 문서: <https://mjourney-api-eighttontruck8.onrender.com/docs>
+
+Render가 이름 충돌 때문에 서비스명과 URL에 접미사를 붙인 경우, API의 `M_JOURNEY_PUBLIC_API_BASE_URL`, `M_JOURNEY_FRONTEND_BASE_URL`, `M_JOURNEY_CORS_ORIGINS`와 프론트의 `VITE_API_BASE_URL`을 실제 주소로 수정한 뒤 두 서비스를 다시 배포한다. 무료 PostgreSQL은 기간 제한이 있으므로 해커톤 이후 운영 전에는 유료 DB나 다른 운영 DB로 전환한다.
+
 ### 운영 배포 preflight
 
 저장소 루트의 `.env.production.example`을 복사한 뒤 `example.com`과 모든 `<...>` 값을 실제 도메인·비밀값으로 교체한다. 실제 `.env.production`은 Git에서 제외된다.

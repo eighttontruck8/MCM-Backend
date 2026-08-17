@@ -6,7 +6,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from app.database import Base
+from app.database import Base, normalize_database_url
 from app import models  # noqa: F401
 
 
@@ -16,7 +16,7 @@ if config.config_file_name is not None:
 
 database_url = os.getenv("M_JOURNEY_DATABASE_URL")
 if database_url:
-    config.set_main_option("sqlalchemy.url", database_url.replace("%", "%%"))
+    config.set_main_option("sqlalchemy.url", normalize_database_url(database_url).replace("%", "%%"))
 
 target_metadata = Base.metadata
 

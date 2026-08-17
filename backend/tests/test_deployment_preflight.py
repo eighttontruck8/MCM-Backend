@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from app.config import load_settings
@@ -45,6 +47,25 @@ def test_production_preflight_can_explicitly_show_qr_url(monkeypatch: pytest.Mon
     )
 
     assert result.qr_entry_url.endswith("/entry/production-qr-token-with-enough-entropy")
+
+
+def test_production_preflight_accepts_render_postgres_connection_string(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = replace(
+        _production_settings(monkeypatch),
+        database_url="postgresql://user:strong-db-password@db.prod/mjourney",
+    )
+
+    result = validate_production_deployment(
+        settings,
+        public_api_base_url="https://api.mjourney.test",
+        jwt_secret="jwt-secret-with-at-least-thirty-two-characters",
+        demo_password="strong-demo-password",
+        demo_qr_token="production-qr-token-with-enough-entropy",
+    )
+
+    assert result.database == "postgresql+psycopg"
 
 
 @pytest.mark.parametrize(
