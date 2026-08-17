@@ -99,6 +99,26 @@ uv run --env-file ../.env.production python -m app.demo_qr --output ../demo-arti
 
 기존 파일은 자동으로 덮어쓰지 않는다. 의도적으로 다시 만들 때만 `--force`를 추가한다. 생성된 SVG는 브라우저에서 열어 원본 비율로 인쇄하고, 실제 휴대폰 카메라로 HTTPS 접속과 체크인 완료까지 확인한다.
 
+### 고객 QR 시연 리허설
+
+배포 후 아래 명령으로 readiness, QR 태그·프론트 리다이렉트, 고객 로그인, 체크인, PRIVATE 선택, 룩북 생성까지 순서대로 검증한다. 비밀번호와 QR 토큰은 명령행 인자로 받지 않고 `.env.production`에서만 읽는다. 리허설이 만든 체크인은 중간 실패 시에도 취소하며, 기존 활성 체크인이 있으면 임의로 변경하지 않고 중단한다.
+
+```powershell
+cd backend
+uv run --env-file ../.env.production python -m app.demo_rehearsal
+```
+
+로컬 Docker 환경은 명시적인 로컬 HTTP 허용 옵션으로 검증한다.
+
+```powershell
+$env:M_JOURNEY_DEMO_PASSWORD='mjourney-demo-password'
+$env:M_JOURNEY_DEMO_QR_TOKEN='qr-demo-seoul-001-7f4d0b9e8c2a'
+$env:M_JOURNEY_FRONTEND_BASE_URL='http://localhost:5173'
+uv run python -m app.demo_rehearsal --api-base-url http://127.0.0.1:8000 --allow-http-local
+```
+
+자동 리허설 성공 후에도 실제 휴대폰 카메라, 모바일 브라우저, 직원 태블릿을 사용한 수동 전체 리허설은 별도로 수행한다.
+
 ## 테스트
 
 ```powershell
