@@ -35,6 +35,8 @@ services:
         generateValue: true
       - key: M_JOURNEY_DEMO_PASSWORD
         sync: false
+      - key: M_JOURNEY_STAFF_SIGNUP_CODE
+        sync: false
       - key: M_JOURNEY_DEMO_QR_TOKEN
         sync: false
 

@@ -121,6 +121,25 @@ export async function signupCustomer({ name, phone, email, password }) {
   return tokens;
 }
 
+export async function signupStaff({ name, email, password, storeId, signupCode }) {
+  const tokens = await apiRequest(
+    '/api/v1/auth/staff/signup',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        store_id: storeId,
+        signup_code: signupCode,
+      }),
+    },
+    false,
+  );
+  saveAuth(tokens);
+  return tokens;
+}
+
 export function requestPasswordReset(email) {
   return apiRequest(
     '/api/v1/auth/password-reset/request',

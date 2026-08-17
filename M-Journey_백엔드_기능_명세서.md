@@ -173,13 +173,14 @@ CHECKED_IN
 
 ## 6. 기능 상세 명세
 
-### F-01. 고객 인증
+### F-01. 고객·직원 인증
 
 프론트에 로그인·회원가입·비밀번호 재설정 화면이 있으므로 다음 계약을 제공한다.
 
 | Method | Endpoint | 설명 | 인증 |
 |---|---|---|---|
 | POST | `/auth/signup` | 고객 가입 | 불필요 |
+| POST | `/auth/staff/signup` | 가입 코드와 매장 코드를 검증한 직원 가입 | 불필요 |
 | POST | `/auth/login` | 고객/직원 로그인 | 불필요 |
 | POST | `/auth/refresh` | Access Token 재발급 | Refresh Token |
 | POST | `/auth/logout` | Refresh Token 폐기 | 필요 |
@@ -216,6 +217,7 @@ MVP 로그인 요청:
 
 - 비밀번호는 평문으로 저장하거나 로그에 남기지 않는다.
 - 직원 토큰에는 `role=STAFF`, `store_id`를 포함하고 고객 API와 직원 API를 분리한다.
+- 직원 가입은 서버 환경변수 `M_JOURNEY_STAFF_SIGNUP_CODE`와 일치하는 가입 코드를 요구하고 활성 매장만 허용한다.
 - 데모에서는 가입/메일 전송을 mock 처리할 수 있으나 로그인과 권한 검사는 실제로 동작해야 한다.
 
 ### F-02. 고객 프로필

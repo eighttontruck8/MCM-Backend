@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createOrResumeCheckin, login } from '../../api/client';
+import { clearAuth, createOrResumeCheckin, login } from '../../api/client';
 import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
 import './LoginPage.css';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isStaffLogin = searchParams.get('role') === 'staff';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
@@ -21,6 +22,11 @@ export default function LoginPage() {
     setIsSubmitting(true);
     try {
       const tokens = await login(email, password, remember);
+      if (isStaffLogin && tokens.user.role !== 'STAFF') {
+        clearAuth();
+        setErrorMessage('직원 계정으로 로그인해주세요.');
+        return;
+      }
       if (tokens.user.role === 'STAFF') {
         clearEntryTag();
         navigate('/staff/waiting', { replace: true });
@@ -70,7 +76,7 @@ export default function LoginPage() {
 
           <div className="login-page__tabs" data-node-id="17:20" data-name="Container">
             <button type="button" className="login-page__tab login-page__tab--active" data-node-id="17:21" data-name="Button">
-              로그인
+              {isStaffLogin ? '직원 로그인' : '로그인'}
             </button>
             <button
               type="button"
@@ -79,7 +85,7 @@ export default function LoginPage() {
               data-name="Button"
               onClick={() => navigate(`/signup${searchParams.toString() ? `?${searchParams}` : ''}`)}
             >
-              회원가입
+              {isStaffLogin ? '직원 회원가입' : '회원가입'}
             </button>
           </div>
 
@@ -143,7 +149,16 @@ export default function LoginPage() {
             {errorMessage && <p className="login-page__error" role="alert">{errorMessage}</p>}
 
             <button type="submit" className="login-page__submit" data-node-id="17:33" data-name="Container" disabled={isSubmitting}>
-              {isSubmitting ? '로그인 중...' : '로그인'}
+              {isSubmitting ? '로그인 중...' : isStaffLogin ? '직원 로그인' : '로그인'}
+            </button>
+
+            {/* [Frontend-11-'직원 인증 진입'] 같은 인증 화면에서 역할 모드를 명시적으로 전환한다. */}
+            <button
+              type="button"
+              className="login-page__staff-switch"
+              onClick={() => navigate(isStaffLogin ? '/login' : '/login?role=staff')}
+            >
+              {isStaffLogin ? '고객용 로그인' : '직원용 로그인'}
             </button>
           </form>
         </div>

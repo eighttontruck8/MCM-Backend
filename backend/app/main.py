@@ -32,6 +32,7 @@ def create_app(
     *,
     jwt_secret: str | None = None,
     demo_password: str | None = None,
+    staff_signup_code: str | None = None,
     ai_provider: AIProvider | None = None,
     ai_timeout_seconds: float | None = None,
     ai_max_retries: int | None = None,
@@ -71,6 +72,9 @@ def create_app(
     )
     application.state.database = database
     application.state.jwt_secret = jwt_secret or settings.jwt_secret
+    application.state.staff_signup_code = (
+        staff_signup_code if staff_signup_code is not None else settings.staff_signup_code
+    )
     application.state.frontend_base_url = (frontend_base_url or settings.frontend_base_url).rstrip("/")
     application.state.access_token_expire_minutes = settings.access_token_expire_minutes
     application.state.refresh_token_expire_days = settings.refresh_token_expire_days

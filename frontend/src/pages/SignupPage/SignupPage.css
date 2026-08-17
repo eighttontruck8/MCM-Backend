@@ -190,6 +190,13 @@
   line-height: 18px;
 }
 
+.signup-page__notice {
+  margin: -8px 0 0;
+  color: #7a746e;
+  font-size: 11px;
+  line-height: 17px;
+}
+
 .signup-page__submit {
   width: 100%;
   height: 49.972px;

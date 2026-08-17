@@ -14,7 +14,7 @@ from starlette.websockets import WebSocketDisconnect
 from sqlalchemy import select
 
 from app.main import create_app
-from app.models import AuditLog, Consent, Customer, PasswordResetToken, Recommendation, StaffAssignment, User
+from app.models import AuditLog, Consent, Customer, PasswordResetToken, Recommendation, Staff, StaffAssignment, User
 from app.security import token_hash
 
 TEST_PASSWORD = "test-password-1234"
@@ -209,6 +209,72 @@ def test_customer_signup_validates_contact_and_password() -> None:
             },
         )
         assert response.status_code == 422
+
+
+def test_staff_signup_requires_code_and_creates_store_account() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        demo_qr_token=TEST_QR_TOKEN,
+        staff_signup_code="approved-staff-code",
+    )
+    with TestClient(app) as client:
+        signup = {
+            "name": " 신규 직원 ",
+            "email": "New.Staff@Example.com",
+            "password": "new-staff-password",
+            "store_id": "S001",
+            "signup_code": "approved-staff-code",
+        }
+        denied = client.post(
+            "/api/v1/auth/staff/signup",
+            json={**signup, "signup_code": "incorrect-code"},
+        )
+        assert denied.status_code == 403
+        assert denied.json()["error"]["code"] == "INVALID_STAFF_SIGNUP_CODE"
+
+        response = client.post("/api/v1/auth/staff/signup", json=signup)
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["user"]["role"] == "STAFF"
+        assert payload["user"]["display_name"] == "신규 직원"
+        assert payload["user"]["store_id"] == "S001"
+
+        with client.app.state.database.session_factory() as session:
+            staff = session.get(Staff, payload["user"]["id"])
+            assert staff.store_id == "S001"
+            assert staff.title == "Client Advisor"
+
+        login_response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "new.staff@example.com", "password": "new-staff-password"},
+        )
+        assert login_response.status_code == 200
+        assert login_response.json()["user"]["role"] == "STAFF"
+
+
+def test_staff_signup_is_disabled_without_configured_code() -> None:
+    app = create_app(
+        "sqlite+pysqlite:///:memory:",
+        jwt_secret="test-jwt-secret-with-sufficient-length",
+        demo_password=TEST_PASSWORD,
+        demo_qr_token=TEST_QR_TOKEN,
+        staff_signup_code="",
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/auth/staff/signup",
+            json={
+                "name": "신규 직원",
+                "email": "new-staff@example.com",
+                "password": "new-staff-password",
+                "store_id": "S001",
+                "signup_code": "approved-staff-code",
+            },
+        )
+        assert response.status_code == 503
+        assert response.json()["error"]["code"] == "STAFF_SIGNUP_DISABLED"
 
 
 def test_qr_entry_validation_redirect_and_nfc_compatibility() -> None:

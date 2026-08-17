@@ -33,3 +33,26 @@ def test_signup_and_login_screens_use_email_identity() -> None:
     assert "max-width: 100%" in signup_css
     assert ".signup-page__input {\n  width: 100%" in signup_css
     assert ".signup-page__submit {\n  width: 100%" in signup_css
+
+
+def test_staff_login_and_signup_flow_is_connected() -> None:
+    signup = (
+        REPOSITORY_ROOT / "frontend" / "src" / "pages" / "SignupPage" / "SignupPage.jsx"
+    ).read_text(encoding="utf-8")
+    login = (
+        REPOSITORY_ROOT / "frontend" / "src" / "pages" / "LoginPage" / "LoginPage.jsx"
+    ).read_text(encoding="utf-8")
+    client = (REPOSITORY_ROOT / "frontend" / "src" / "api" / "client.js").read_text(
+        encoding="utf-8"
+    )
+
+    assert "직원용 로그인" in login
+    assert "searchParams.get('role') === 'staff'" in login
+    assert "직원 계정으로 로그인해주세요." in login
+    assert "signupStaff({ name, email, password, storeId, signupCode })" in signup
+    assert "navigate('/staff/waiting', { replace: true })" in signup
+    assert "'/api/v1/auth/staff/signup'" in client
+    assert "signup_code: signupCode" in client
+    app = (REPOSITORY_ROOT / "frontend" / "src" / "App.jsx").read_text(encoding="utf-8")
+    assert 'RequireAuth role="STAFF"' in app
+    assert "user?.role !== role" in app

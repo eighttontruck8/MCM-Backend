@@ -74,6 +74,24 @@ class CustomerSignupRequest(ApiModel):
         return value.strip().lower()
 
 
+class StaffSignupRequest(ApiModel):
+    name: str = Field(min_length=2, max_length=100)
+    email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=12, max_length=200)
+    store_id: str = Field(min_length=2, max_length=32)
+    signup_code: str = Field(min_length=8, max_length=200)
+
+    @field_validator("name", "store_id")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
 class RefreshRequest(ApiModel):
     refresh_token: str = Field(min_length=20)
 

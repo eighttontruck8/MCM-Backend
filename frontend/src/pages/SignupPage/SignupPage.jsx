@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { createOrResumeCheckin, signupCustomer } from '../../api/client';
+import { createOrResumeCheckin, signupCustomer, signupStaff } from '../../api/client';
 import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
 import './SignupPage.css';
 
 export default function SignupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const isStaffSignup = searchParams.get('role') === 'staff';
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
+  const [storeId, setStoreId] = useState('S001');
+  const [signupCode, setSignupCode] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const authQuery = searchParams.toString() ? `?${searchParams}` : '';
@@ -25,6 +28,11 @@ export default function SignupPage() {
     }
     setIsSubmitting(true);
     try {
+      if (isStaffSignup) {
+        await signupStaff({ name, email, password, storeId, signupCode });
+        navigate('/staff/waiting', { replace: true });
+        return;
+      }
       await signupCustomer({ name, phone, email, password });
       const entryTag = getEntryTag();
       if (searchParams.get('next') === 'check-in' && entryTag?.tag_token) {
@@ -75,10 +83,10 @@ export default function SignupPage() {
               data-name="Button"
               onClick={() => navigate(`/login${authQuery}`)}
             >
-              로그인
+              {isStaffSignup ? '직원 로그인' : '로그인'}
             </button>
             <button type="button" className="signup-page__tab signup-page__tab--active" data-node-id="13:1498" data-name="Button">
-              회원가입
+              {isStaffSignup ? '직원 회원가입' : '회원가입'}
             </button>
           </div>
 
@@ -102,24 +110,59 @@ export default function SignupPage() {
               />
             </div>
 
-            <div className="signup-page__field" data-node-id="13:1510" data-name="Input">
-              <label htmlFor="signup-phone" className="signup-page__label" data-node-id="13:1511" data-name="Label">
-                연락처
-              </label>
-              <input
-                id="signup-phone"
-                type="tel"
-                className="signup-page__input"
-                placeholder="010-0000-0000"
-                autoComplete="tel"
-                value={phone}
-                onChange={(event) => setPhone(event.target.value)}
-                pattern="01[016789]-?[0-9]{3,4}-?[0-9]{4}"
-                required
-                data-node-id="13:1514"
-                data-name="Phone Input"
-              />
-            </div>
+            {!isStaffSignup && (
+              <div className="signup-page__field" data-node-id="13:1510" data-name="Input">
+                <label htmlFor="signup-phone" className="signup-page__label" data-node-id="13:1511" data-name="Label">
+                  연락처
+                </label>
+                <input
+                  id="signup-phone"
+                  type="tel"
+                  className="signup-page__input"
+                  placeholder="010-0000-0000"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  pattern="01[016789]-?[0-9]{3,4}-?[0-9]{4}"
+                  required
+                  data-node-id="13:1514"
+                  data-name="Phone Input"
+                />
+              </div>
+            )}
+
+            {isStaffSignup && (
+              <>
+                {/* [Frontend-12-'직원 셀프 회원가입'] 매장과 비공개 가입 코드를 백엔드에서 검증한다. */}
+                <div className="signup-page__field">
+                  <label htmlFor="signup-store-id" className="signup-page__label">매장 코드</label>
+                  <input
+                    id="signup-store-id"
+                    type="text"
+                    className="signup-page__input"
+                    value={storeId}
+                    onChange={(event) => setStoreId(event.target.value)}
+                    autoComplete="organization"
+                    required
+                  />
+                </div>
+                <div className="signup-page__field">
+                  <label htmlFor="signup-staff-code" className="signup-page__label">직원 가입 코드</label>
+                  <input
+                    id="signup-staff-code"
+                    type="password"
+                    className="signup-page__input"
+                    placeholder="관리자에게 받은 가입 코드"
+                    value={signupCode}
+                    onChange={(event) => setSignupCode(event.target.value)}
+                    autoComplete="off"
+                    minLength={8}
+                    required
+                  />
+                </div>
+                <p className="signup-page__notice">직원 계정은 승인된 가입 코드가 있어야 생성할 수 있습니다.</p>
+              </>
+            )}
 
             {/* [Frontend-01-'인증 이메일 식별자 통일'] 백엔드 로그인 계약과 동일하게 이메일을 사용한다. */}
             <div className="signup-page__field" data-node-id="13:1516" data-name="Input">
@@ -130,7 +173,7 @@ export default function SignupPage() {
                 id="signup-email"
                 type="email"
                 className="signup-page__input"
-                placeholder="customer@example.com"
+                placeholder={isStaffSignup ? 'staff@example.com' : 'customer@example.com'}
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -185,7 +228,7 @@ export default function SignupPage() {
               data-name="Container"
               disabled={isSubmitting}
             >
-              {isSubmitting ? '가입 중...' : '가입하기'}
+              {isSubmitting ? '가입 중...' : isStaffSignup ? '직원 가입하기' : '가입하기'}
             </button>
           </form>
         </div>

@@ -15,7 +15,7 @@ from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_user
 from app.errors import DomainError
-from app.models import Customer, PasswordResetToken, RefreshToken, Staff, User
+from app.models import Customer, PasswordResetToken, RefreshToken, Staff, Store, User
 from app.schemas import (
     AuthUserResponse,
     CustomerSignupRequest,
@@ -26,6 +26,7 @@ from app.schemas import (
     PasswordResetRequest,
     PasswordResetRequestResponse,
     RefreshRequest,
+    StaffSignupRequest,
     TokenResponse,
     UserRole,
 )
@@ -102,6 +103,61 @@ def signup(body: CustomerSignupRequest, request: Request, db: DbSession) -> Toke
         actor_id=user.id,
         resource_id=user.id,
         metadata={"role": UserRole.CUSTOMER.value},
+    )
+    return issue_tokens(user, request, db)
+
+
+@router.post("/auth/staff/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> TokenResponse:
+    """가입 코드를 검증해 매장 소속 직원 계정을 생성하고 즉시 로그인한다."""
+    # [Backend-12-'직원 셀프 회원가입'] 비공개 가입 코드로 직원 권한 생성을 제한한다.
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("staff_signup", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
+    configured_code = request.app.state.staff_signup_code
+    if not configured_code:
+        raise DomainError(503, "STAFF_SIGNUP_DISABLED", "직원 회원가입이 설정되지 않았습니다.")
+    if not secrets.compare_digest(body.signup_code, configured_code):
+        raise DomainError(403, "INVALID_STAFF_SIGNUP_CODE", "직원 가입 코드가 올바르지 않습니다.")
+    if db.scalar(select(User.id).where(User.email == body.email)) is not None:
+        raise DomainError(409, "EMAIL_ALREADY_REGISTERED", "이미 가입된 이메일입니다.")
+    store = db.get(Store, body.store_id)
+    if store is None or not store.is_active:
+        raise DomainError(404, "STORE_NOT_FOUND", "가입 가능한 매장을 찾을 수 없습니다.")
+
+    now = utc_now()
+    staff_id = f"ST{secrets.token_hex(8)}"
+    user = User(
+        id=staff_id,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=UserRole.STAFF.value,
+        display_name=body.name,
+        created_at=now,
+        updated_at=now,
+    )
+    staff = Staff(
+        id=staff_id,
+        store_id=store.id,
+        title="Client Advisor",
+        experience_years=0,
+    )
+    db.add_all([user, staff])
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise DomainError(409, "ACCOUNT_ALREADY_REGISTERED", "이미 가입된 계정 정보입니다.") from None
+    record_audit(
+        db,
+        request,
+        action="AUTH_SIGNUP_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": UserRole.STAFF.value, "store_id": store.id},
     )
     return issue_tokens(user, request, db)
 
