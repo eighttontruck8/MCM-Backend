@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -46,3 +47,23 @@ def test_lookbook_empty_state_and_logout_confirmation_are_visible() -> None:
     assert "홈으로 돌아가기" in lookbook
     assert "님, 로그아웃 하시겠습니까?" in my_page
     assert "최근 구매 이력이 없습니다." in my_page
+
+
+def test_catalog_fallback_and_product_image_placeholder_are_connected() -> None:
+    all_recommend = _read("pages/AllRecommendPage/AllRecommendPage.jsx")
+    lookbook = _read("pages/LookbookPage/LookbookPage.jsx")
+    lookbook_session = _read("utils/lookbookSession.js")
+    product_image = _read("components/ProductImage/ProductImage.jsx")
+
+    assert "fetchProducts" in all_recommend
+    assert 'AppBottomNav active="home"' in all_recommend
+    assert "fetchProducts" in lookbook
+    assert "매장 추천 룩북" in lookbook
+    assert "Array.isArray(stored.data.looks)" in lookbook_session
+    assert "IMAGE<br />COMING SOON" in product_image
+
+
+def test_css_does_not_define_fonts_smaller_than_eleven_pixels() -> None:
+    undersized = re.compile(r"font-size\s*:\s*(?:[0-9](?:\.\d+)?|10(?:\.\d+)?)px")
+    for stylesheet in FRONTEND_SOURCE.rglob("*.css"):
+        assert not undersized.search(stylesheet.read_text(encoding="utf-8")), stylesheet

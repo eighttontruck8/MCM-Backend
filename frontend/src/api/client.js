@@ -207,6 +207,11 @@ export function fetchMyProfile() {
   return apiRequest('/api/v1/customers/me');
 }
 
+export function fetchProducts(storeId = 'S001', inStock = true) {
+  const query = new URLSearchParams({ store_id: storeId, in_stock: String(inStock) });
+  return apiRequest(`/api/v1/products?${query}`, {}, false);
+}
+
 export function fetchRecommendations() {
   return apiRequest('/api/v1/customers/me/recommendations');
 }

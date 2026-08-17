@@ -107,7 +107,7 @@
 .checkin-complete-page__subtitle {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 15px;
   color: #c9a882;
   letter-spacing: 2px;
@@ -154,7 +154,7 @@
 .checkin-complete-page__report-title {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 13.5px;
   color: #c9a882;
   text-transform: uppercase;
@@ -178,7 +178,7 @@
 .checkin-complete-page__report-bullet {
   font-family: 'DM Sans', sans-serif;
   font-weight: 400;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 15px;
   color: #c9a882;
   margin: 0;

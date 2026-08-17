@@ -19,7 +19,15 @@ export function saveLookbook(checkinId, lookbook) {
 
 export function getLookbook(checkinId) {
   const stored = readJson(LOOKBOOK_KEY);
-  return stored?.checkin_id === checkinId ? stored.data : null;
+  if (
+    stored?.checkin_id !== checkinId
+    || !stored.data
+    || !Array.isArray(stored.data.looks)
+  ) {
+    if (stored) window.sessionStorage.removeItem(LOOKBOOK_KEY);
+    return null;
+  }
+  return stored.data;
 }
 
 export function saveSelectedLook(look) {

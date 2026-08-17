@@ -63,7 +63,7 @@
   border: 1.127px solid #c9a882;
   padding: 3px 8px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 8px;
+  font-size: 11px;
   color: #c9a882;
   display:flex;
   gap:5px;
@@ -79,7 +79,7 @@
 
 .main-recommend-page__greeting {
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(9px, 2.5vw, 10px);
+  font-size: clamp(11px, 2.5vw, 10px);
   color: #7a746e;
   margin: 0 0 6px 0;
   text-transform: uppercase;
@@ -136,7 +136,7 @@
 .context-label {
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
-  font-size: clamp(8px, 2vw, 9px);
+  font-size: clamp(11px, 2vw, 9px);
   color: #c9a882;
   text-transform: uppercase;
   letter-spacing: 1.62px;
@@ -147,7 +147,7 @@
 .context-desc {
   font-family: 'DM Sans', sans-serif;
   font-weight: 300;
-  font-size: clamp(10px, 3vw, 12px);
+  font-size: clamp(11px, 3vw, 12px);
   color: rgba(255,255,255,0.8);
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -246,7 +246,7 @@
 
 .section-link {
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px;
+  font-size: 11px;
   border: none;
   background: transparent;
   border-bottom:1.127px solid #e8e3dc;
@@ -291,7 +291,7 @@
 
 .product-meta .brand {
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(8px, 2vw, 9px);
+  font-size: clamp(11px, 2vw, 9px);
   color:#7a746e;
   text-transform: uppercase;
   overflow-wrap: anywhere;
@@ -319,7 +319,7 @@
 .product-meta .ai-desc {
   margin-top:8px;
   font-family: 'DM Sans', sans-serif;
-  font-size: clamp(9px, 2.5vw, 10px);
+  font-size: clamp(11px, 2.5vw, 10px);
   color:#7a746e;
   border-top:1.127px solid #e8e3dc;
   padding-top:8px;
@@ -376,9 +376,9 @@
   color:#b0a89e;
 }
 
-.popular-meta .brand { font-size:clamp(8px, 2vw, 9px); color:#7a746e; text-transform:uppercase; overflow-wrap:anywhere; word-break:break-word; }
+.popular-meta .brand { font-size: clamp(11px, 2vw, 9px); color:#7a746e; text-transform:uppercase; overflow-wrap:anywhere; word-break:break-word; }
 .popular-meta .name { font-family:'DM Sans', sans-serif; font-size:var(--font-body); line-height:1.25; overflow-wrap:anywhere; word-break:break-word; }
-.popular-meta .price { font-weight:500; font-size:clamp(10px, 3vw, 12px); overflow-wrap:anywhere; word-break:break-word; }
+.popular-meta .price { font-weight:500; font-size: clamp(11px, 3vw, 12px); overflow-wrap:anywhere; word-break:break-word; }
 
 .main-recommend-page__cta {
   padding: 20px;

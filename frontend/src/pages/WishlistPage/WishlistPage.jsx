@@ -1,4 +1,5 @@
 import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
+import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './WishlistPage.css';
 
@@ -21,7 +22,7 @@ export default function WishlistPage() {
             <ul className="wishlist-list">
               {items.map((item) => (
                 <li key={item.product_id} className="wishlist-item">
-                  <div className="wishlist-item__left"><div className="wishlist-item__img" style={{ backgroundImage: `url(${item.image_url})` }} /></div>
+                  <div className="wishlist-item__left"><ProductImage className="wishlist-item__img" src={item.image_url} alt={item.name} /></div>
                   <div className="wishlist-item__center">
                     <div className="wishlist-item__brand">{item.line}</div>
                     <div className="wishlist-item__name">{item.name}</div>

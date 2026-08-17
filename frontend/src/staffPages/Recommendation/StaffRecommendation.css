@@ -107,7 +107,7 @@
   background: #f5e3b7;
   border-radius: 999px;
   color: #6d541b;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -148,7 +148,7 @@
 }
 
 .staff-recommend-profile-date {
-  font-size: 10px;
+  font-size: 11px;
   color: #7a7a7a;
 }
 
@@ -168,7 +168,7 @@
   border-radius: 999px;
   background: #f6f5f5;
   border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   color: #6f6b67;
 }
@@ -196,7 +196,7 @@
 }
 
 .staff-recommend-meta-label {
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   color: #8d8a88;
   text-transform: uppercase;
@@ -235,7 +235,7 @@
   text-align: center;
   padding: 5px 8px;
   border-radius: 999px;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   background: rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.06);
@@ -355,7 +355,7 @@
 
 .staff-recommend-item-sub {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   color: #7f7d7b;
 }
 
@@ -364,7 +364,7 @@
   align-items: center;
   gap: 10px;
   color: #5e5e5e;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .staff-recommend-item-mini > span {
@@ -461,7 +461,7 @@
 }
 
 .staff-recommend-alt-info span {
-  font-size: 10px;
+  font-size: 11px;
   color: #767676;
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMyProfile, fetchRecommendations } from '../../api/client';
 import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
+import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './MainRecommendPage.css';
 
@@ -63,7 +64,7 @@ export default function MainRecommendPage() {
                 <div className="product-grid">
                   {products.slice(0, 4).map((product) => (
                     <article key={product.product_id} className="product-card">
-                      <div className="product-image" style={{ backgroundImage: `url(${product.image_url})` }} aria-label={product.name} />
+                      <ProductImage className="product-image" src={product.image_url} alt={product.name} />
                       <div className="product-meta">
                         <div className="brand">{product.line}</div>
                         <div className="name">{product.name}</div>

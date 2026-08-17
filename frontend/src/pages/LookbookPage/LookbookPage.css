@@ -11,6 +11,7 @@
 .lookbook-intro__copy, .lookbook-state { color: #7a746e; font-size: var(--font-body); line-height: 1.6; }
 .lookbook-state { margin: 0; padding: 24px var(--page-gutter); }
 .lookbook-state--error { color: #b42318; }
+.lookbook-state--notice { color: #5f574f; background: #f5f1ec; }
 
 .lookbook-page__container {
   width: 100%;

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchRecommendations } from '../../api/client';
+import { fetchProducts, fetchRecommendations } from '../../api/client';
+import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
+import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './AllRecommendPage.css';
 
@@ -14,9 +16,17 @@ export default function AllRecommendPage() {
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
+    // [Frontend-09-'기본 상품 카탈로그 표시'] 추천이 없어도 재고가 있는 상품을 기본 노출한다.
     const timer = window.setTimeout(async () => {
       try {
-        setProducts((await fetchRecommendations()).items);
+        const [recommendations, catalog] = await Promise.all([
+          fetchRecommendations().catch(() => ({ items: [] })),
+          fetchProducts(),
+        ]);
+        const merged = [...recommendations.items, ...catalog.items].filter(
+          (product, index, items) => items.findIndex((item) => item.product_id === product.product_id) === index,
+        );
+        setProducts(merged);
       } catch (error) {
         setErrorMessage(error.message);
       } finally {
@@ -48,7 +58,7 @@ export default function AllRecommendPage() {
           <main className="all-recommend-page__list">
             {filteredProducts.map((product) => (
               <article key={product.product_id} className="product-row">
-                <div className="product-row__left"><div className="product-image" style={{ backgroundImage: `url(${product.image_url})` }} /></div>
+                <div className="product-row__left"><ProductImage className="product-image" src={product.image_url} alt={product.name} /></div>
                 <div className="product-row__content">
                   <div className="product-row__tag">{product.tags[0] ?? product.category}</div>
                   <div className="product-row__brand">{product.line}</div>
@@ -64,6 +74,7 @@ export default function AllRecommendPage() {
             {!filteredProducts.length && <p className="recommend-list-state">조건에 맞는 추천 상품이 없습니다.</p>}
           </main>
         )}
+        <AppBottomNav active="home" />
       </div>
     </div>
   );
