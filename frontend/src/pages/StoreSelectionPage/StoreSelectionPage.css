@@ -1,0 +1,10 @@
+.store-selection-page { min-height: 100vh; width: min(100%, 430px); margin: 0 auto; padding: 48px 20px; background: #fafaf8; }
+.store-selection-page__header p { margin: 0 0 12px; color: #a7835b; font-size: 11px; letter-spacing: 1.6px; }
+.store-selection-page__header h1 { margin: 0 0 10px; font-size: 24px; line-height: 1.4; word-break: keep-all; }
+.store-selection-page__header span, .store-selection-page__address, .store-selection-page__distance { color: #827c76; font-size: 11px; }
+.store-selection-page__list { display: flex; flex-direction: column; gap: 12px; margin-top: 30px; }
+.store-selection-page__list button { position: relative; display: flex; flex-direction: column; gap: 7px; min-height: 94px; padding: 20px; border: 1px solid #e0dbd5; background: #fff; text-align: left; cursor: pointer; }
+.store-selection-page__store-name { padding-right: 64px; color: #0a0a0a; font-size: 15px; font-weight: 500; }
+.store-selection-page__distance { position: absolute; top: 22px; right: 20px; color: #a7835b; }
+.store-selection-page__list button:disabled { cursor: wait; opacity: 0.6; }
+.store-selection-page__error { color: #b42318; font-size: 11px; }

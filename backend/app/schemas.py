@@ -145,7 +145,15 @@ class CustomerResponse(ApiModel):
 class StoreResponse(ApiModel):
     store_id: str
     name: str
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     timezone: str
+
+
+class StoreListResponse(ApiModel):
+    items: list[StoreResponse]
+    next_cursor: str | None = None
 
 
 class InventoryResponse(ApiModel):
@@ -190,6 +198,10 @@ class PurchaseListResponse(ApiModel):
 
 class CheckinCreateRequest(ApiModel):
     tag_token: str = Field(min_length=8, max_length=255)
+
+
+class StoreCheckinCreateRequest(ApiModel):
+    store_id: str = Field(min_length=1, max_length=32)
 
 
 class EntryTagResponse(ApiModel):

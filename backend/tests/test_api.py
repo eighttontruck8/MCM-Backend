@@ -353,6 +353,32 @@ def test_authenticated_customer_can_start_demo_checkin_from_home() -> None:
         assert duplicate.json()["error"]["code"] == "ACTIVE_CHECKIN_EXISTS"
 
 
+def test_customer_can_list_stores_and_check_in_to_selected_store() -> None:
+    with make_client() as client:
+        stores = client.get("/api/v1/stores")
+        assert stores.status_code == 200
+        assert [item["store_id"] for item in stores.json()["items"]] == ["S001", "S002", "S003"]
+        assert stores.json()["items"][0]["latitude"] is not None
+
+        customer_headers = headers(client, "customer2@example.com")
+        response = client.post(
+            "/api/v1/check-ins/store",
+            headers=customer_headers,
+            json={"store_id": "S002"},
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["store"]["store_id"] == "S002"
+        assert response.json()["status"] == "CHECKED_IN"
+
+        unavailable = client.post(
+            "/api/v1/check-ins/store",
+            headers=customer_headers,
+            json={"store_id": "UNKNOWN"},
+        )
+        assert unavailable.status_code == 404
+        assert unavailable.json()["error"]["code"] == "STORE_NOT_FOUND"
+
+
 def test_private_shopping_flow() -> None:
     with make_client() as client:
         auth_headers = headers(client)

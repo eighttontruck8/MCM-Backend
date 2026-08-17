@@ -18,6 +18,7 @@ import ShoppingOptionPage from './pages/ShoppingOptionPage/ShoppingOptionPage';
 import VisitInfoPage from './pages/VisitInfoPage/VisitInfoPage';
 import VisitInfoCompletePage from './pages/VisitInfoCompletePage/VisitInfoCompletePage';
 import StaffAssignmentPage from './pages/StaffAssignmentPage/StaffAssignmentPage';
+import StoreSelectionPage from './pages/StoreSelectionPage/StoreSelectionPage';
 
 // 3. 메인 서비스 (홈, 룩북, 찜, 마이페이지)
 import MainRecommendPage from './pages/MainRecommendPage/MainRecommendPage';
@@ -64,6 +65,7 @@ function App() {
 
         {/* 2. 체크인 & 오프라인 연동 흐름 */}
         <Route path="/check-in" element={<NfcLoadingPage />} />
+        <Route path="/check-in/stores" element={<RequireAuth><StoreSelectionPage /></RequireAuth>} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/checkin-complete" element={<RequireAuth><CheckInCompletePage /></RequireAuth>} />
         <Route path="/shopping-option" element={<RequireAuth><ShoppingOptionPage /></RequireAuth>} />

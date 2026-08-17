@@ -188,6 +188,24 @@ export async function createOrResumeDemoCheckin() {
   }
 }
 
+export function fetchStores() {
+  return apiRequest('/api/v1/stores', {}, false);
+}
+
+export async function createOrResumeStoreCheckin(storeId) {
+  try {
+    return await apiRequest('/api/v1/check-ins/store', {
+      method: 'POST',
+      body: JSON.stringify({ store_id: storeId }),
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'ACTIVE_CHECKIN_EXISTS' && error.details?.checkin_id) {
+      return fetchCheckin(error.details.checkin_id);
+    }
+    throw error;
+  }
+}
+
 export function setShoppingMode(checkinId, shoppingMode) {
   return apiRequest(`/api/v1/check-ins/${encodeURIComponent(checkinId)}/shopping-mode`, {
     method: 'PATCH',

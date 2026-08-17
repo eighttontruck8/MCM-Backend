@@ -47,6 +47,12 @@ PRODUCTS = [
     ("P006", "비세토스 위켄더 백", "Weekender", "트래블백", ["코냑", "블랙"], "비세토스", 1850000, ["여행", "기내반입", "출장"], 2),
 ]
 
+DEMO_STORES = [
+    ("S001", "MCM 서울 플래그십", "서울 강남구 압구정로", 37.5270, 127.0286),
+    ("S002", "MCM 강남 데모 스토어", "서울 강남구 강남대로", 37.4979, 127.0276),
+    ("S003", "MCM 성수 데모 스토어", "서울 성동구 성수이로", 37.5445, 127.0560),
+]
+
 
 def seed_database(
     session: Session,
@@ -77,16 +83,30 @@ def seed_database(
         # [Backend-01-'PostgreSQL seed 외래키 순서 보장'] 부모 레코드를 참조 레코드보다 먼저 flush한다.
         session.flush()
 
+    # [Backend-14-'가까운 매장 체크인'] 기존 배포 DB에도 데모 매장 위치를 멱등하게 보강한다.
+    for store_id, name, address, latitude, longitude in DEMO_STORES:
+        store = session.get(Store, store_id)
+        if store is None:
+            store = Store(id=store_id, name=name, timezone="Asia/Seoul")
+            session.add(store)
+        store.name = name
+        store.address = address
+        store.latitude = latitude
+        store.longitude = longitude
+    session.flush()
+
+    for store_id, *_ in DEMO_STORES:
         for product_id, _, _, _, _, _, _, _, quantity in PRODUCTS:
-            session.add(
-                Inventory(
-                    store_id=store.id,
-                    product_id=product_id,
-                    quantity=quantity,
-                    updated_at=now,
+            if session.get(Inventory, (store_id, product_id)) is None:
+                session.add(
+                    Inventory(
+                        store_id=store_id,
+                        product_id=product_id,
+                        quantity=quantity,
+                        updated_at=now,
+                    )
                 )
-            )
-        session.flush()
+    session.flush()
 
     entry_tags = [
         (demo_qr_token, EntryChannel.QR),

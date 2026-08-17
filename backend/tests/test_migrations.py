@@ -37,6 +37,8 @@ def test_initial_migration_matches_models_and_downgrades(
     assert "phone" in customer_columns
     customer_indexes = {index["name"]: index for index in inspector.get_indexes("customers")}
     assert customer_indexes["ix_customers_phone"]["unique"] == 1
+    store_columns = {column["name"] for column in inspector.get_columns("stores")}
+    assert {"address", "latitude", "longitude"}.issubset(store_columns)
     inventory_constraints = {
         constraint["name"] for constraint in inspector.get_check_constraints("inventories")
     }

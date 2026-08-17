@@ -74,6 +74,9 @@ class Store(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(nullable=True)
+    longitude: Mapped[float | None] = mapped_column(nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="Asia/Seoul")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 

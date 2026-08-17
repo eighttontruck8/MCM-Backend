@@ -24,10 +24,10 @@ def test_seed_respects_foreign_keys_and_is_idempotent() -> None:
         seed_database(session, demo_password="test-password", demo_qr_token="test-qr-token")
         seed_database(session, demo_password="test-password", demo_qr_token="test-qr-token")
 
-        assert session.scalar(select(func.count()).select_from(Store)) == 1
+        assert session.scalar(select(func.count()).select_from(Store)) == 3
         assert session.scalar(select(func.count()).select_from(Customer)) == 2
         assert session.scalar(select(func.count()).select_from(Product)) == len(PRODUCTS)
-        assert session.scalar(select(func.count()).select_from(Inventory)) == len(PRODUCTS)
+        assert session.scalar(select(func.count()).select_from(Inventory)) == len(PRODUCTS) * 3
         assert session.scalar(select(func.count()).select_from(EntryTag)) == 2
         assert session.scalar(select(func.count()).select_from(User)) == 4
         assert session.scalar(select(func.count()).select_from(Staff)) == 2

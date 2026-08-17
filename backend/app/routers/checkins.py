@@ -27,6 +27,7 @@ from app.schemas import (
     ShoppingModeRequest,
     ShoppingModeResponse,
     StaffSummaryResponse,
+    StoreCheckinCreateRequest,
 )
 
 
@@ -108,9 +109,13 @@ def create_checkin(
     if store is None or not store.is_active:
         raise DomainError(400, "STORE_UNAVAILABLE", "현재 체크인할 수 없는 매장입니다.")
 
+    return create_checkin_for_store(customer, store, db)
+
+
+def create_checkin_for_store(customer: Customer, store: Store, db: Session) -> CheckinCreateResponse:
     existing = db.scalar(
         select(Checkin).where(
-            Checkin.customer_id == customer_id,
+            Checkin.customer_id == customer.id,
             Checkin.store_id == store.id,
             Checkin.status.in_(ACTIVE_STATUSES),
         )
@@ -144,6 +149,23 @@ def create_checkin(
         purchase_count=customer.purchase_count,
         interest_count=len(customer.recently_viewed_product_ids),
     )
+
+
+@router.post("/store", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_store_checkin(
+    body: StoreCheckinCreateRequest,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> CheckinCreateResponse:
+    """매장 목록에서 고객이 직접 선택한 활성 매장에 체크인한다."""
+    # [Backend-14-'가까운 매장 체크인'] QR이 없어도 인증 고객과 활성 매장을 서버에서 검증한다.
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
+    store = db.get(Store, body.store_id)
+    if store is None or not store.is_active:
+        raise DomainError(404, "STORE_NOT_FOUND", "체크인할 수 있는 매장을 찾을 수 없습니다.")
+    return create_checkin_for_store(customer, store, db)
 
 
 @router.post("/demo", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)

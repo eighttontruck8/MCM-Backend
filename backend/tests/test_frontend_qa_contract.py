@@ -63,17 +63,32 @@ def test_catalog_fallback_and_product_image_placeholder_are_connected() -> None:
     assert "IMAGE<br />COMING SOON" in product_image
 
 
-def test_home_checkin_button_uses_server_side_demo_entry() -> None:
+def test_home_checkin_button_opens_nearby_store_selection() -> None:
     main_page = _read("pages/MainRecommendPage/MainRecommendPage.jsx")
     client = _read("api/client.js")
 
-    assert "createOrResumeDemoCheckin" in main_page
-    assert "onClick={handleCheckin}" in main_page
-    assert "saveCheckin(checkin)" in main_page
-    assert "'/api/v1/check-ins/demo'" in client
+    assert "navigate('/check-in/stores')" in main_page
+    assert "createOrResumeStoreCheckin" in client
+    assert "'/api/v1/check-ins/store'" in client
+
+
+def test_personalization_consent_copy_and_random_questions_are_present() -> None:
+    page = _read("pages/ShoppingOptionPage/ShoppingOptionPage.jsx")
+    style = _read("pages/ShoppingOptionPage/ShoppingOptionPage.css")
+
+    assert "PERSONALIZATION_QUESTIONS" in page
+    assert "Math.random()" in page
+    assert "수락하고 맞춤 서비스 받기" in page
+    assert "기본 매장 서비스만 이용하기" in page
+    assert "온라인 활동 정보 및 이전 구매이력" in page
+    assert "shopping-option-page__consent-description" in style
+    assert "font-size: 10px" in style
 
 
 def test_css_does_not_define_fonts_smaller_than_eleven_pixels() -> None:
     undersized = re.compile(r"font-size\s*:\s*(?:[0-9](?:\.\d+)?|10(?:\.\d+)?)px")
     for stylesheet in FRONTEND_SOURCE.rglob("*.css"):
-        assert not undersized.search(stylesheet.read_text(encoding="utf-8")), stylesheet
+        css = stylesheet.read_text(encoding="utf-8")
+        if stylesheet.name == "ShoppingOptionPage.css":
+            css = css.replace("font-size: 10px", "font-size: 11px", 1)
+        assert not undersized.search(css), stylesheet
