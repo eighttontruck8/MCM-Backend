@@ -43,7 +43,7 @@ services:
     runtime: static
     rootDir: frontend
     buildCommand: npm ci && npm run build
-    staticPublishPath: dist
+    staticPublishPath: frontend/dist
     autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
