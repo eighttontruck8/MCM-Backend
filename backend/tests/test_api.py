@@ -141,7 +141,7 @@ def test_customer_signup_creates_profile_and_login_account() -> None:
                 "name": " 신규 고객 ",
                 "phone": "010-1234-5678",
                 "email": "New.Customer@Example.com",
-                "password": "new-customer-password",
+                "password": "1234",
             },
         )
 
@@ -166,7 +166,7 @@ def test_customer_signup_creates_profile_and_login_account() -> None:
 
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"email": "NEW.CUSTOMER@example.com", "password": "new-customer-password"},
+            json={"email": "NEW.CUSTOMER@example.com", "password": "1234"},
         )
         assert login_response.status_code == 200
         assert login_response.json()["user"]["id"] == customer_id
@@ -209,6 +209,16 @@ def test_customer_signup_validates_contact_and_password() -> None:
             },
         )
         assert response.status_code == 422
+        short_password = client.post(
+            "/api/v1/auth/signup",
+            json={
+                "name": "고객",
+                "phone": "01012345678",
+                "email": "short-password@example.com",
+                "password": "123",
+            },
+        )
+        assert short_password.status_code == 422
 
 
 def test_staff_signup_requires_code_and_creates_store_account() -> None:
@@ -217,19 +227,19 @@ def test_staff_signup_requires_code_and_creates_store_account() -> None:
         jwt_secret="test-jwt-secret-with-sufficient-length",
         demo_password=TEST_PASSWORD,
         demo_qr_token=TEST_QR_TOKEN,
-        staff_signup_code="approved-staff-code",
+        staff_signup_code="1234",
     )
     with TestClient(app) as client:
         signup = {
             "name": " 신규 직원 ",
             "email": "New.Staff@Example.com",
-            "password": "new-staff-password",
+            "password": "5678",
             "store_id": "S001",
-            "signup_code": "approved-staff-code",
+            "signup_code": "1234",
         }
         denied = client.post(
             "/api/v1/auth/staff/signup",
-            json={**signup, "signup_code": "incorrect-code"},
+            json={**signup, "signup_code": "0000"},
         )
         assert denied.status_code == 403
         assert denied.json()["error"]["code"] == "INVALID_STAFF_SIGNUP_CODE"
@@ -248,7 +258,7 @@ def test_staff_signup_requires_code_and_creates_store_account() -> None:
 
         login_response = client.post(
             "/api/v1/auth/login",
-            json={"email": "new.staff@example.com", "password": "new-staff-password"},
+            json={"email": "new.staff@example.com", "password": "5678"},
         )
         assert login_response.status_code == 200
         assert login_response.json()["user"]["role"] == "STAFF"

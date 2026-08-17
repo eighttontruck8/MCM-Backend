@@ -156,7 +156,7 @@ export default function SignupPage() {
                     value={signupCode}
                     onChange={(event) => setSignupCode(event.target.value)}
                     autoComplete="off"
-                    minLength={8}
+                    minLength={4}
                     required
                   />
                 </div>
@@ -191,11 +191,11 @@ export default function SignupPage() {
                 id="signup-password"
                 type="password"
                 className="signup-page__input"
-                placeholder="12자 이상"
+                placeholder="4자 이상"
                 autoComplete="new-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                minLength={12}
+                minLength={4}
                 required
                 data-node-id="13:1526"
                 data-name="Password Input"
@@ -214,7 +214,7 @@ export default function SignupPage() {
                 autoComplete="new-password"
                 value={passwordConfirm}
                 onChange={(event) => setPasswordConfirm(event.target.value)}
-                minLength={12}
+                minLength={4}
                 required
               />
             </div>

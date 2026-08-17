@@ -46,14 +46,14 @@ class EntryChannel(StrEnum):
 
 class LoginRequest(ApiModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=8, max_length=200)
+    password: str = Field(min_length=4, max_length=200)
 
 
 class CustomerSignupRequest(ApiModel):
     name: str = Field(min_length=2, max_length=100)
     phone: str = Field(min_length=10, max_length=13, pattern=r"^01[016789]-?\d{3,4}-?\d{4}$")
     email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    password: str = Field(min_length=12, max_length=200)
+    password: str = Field(min_length=4, max_length=200)
 
     @field_validator("name")
     @classmethod
@@ -77,9 +77,9 @@ class CustomerSignupRequest(ApiModel):
 class StaffSignupRequest(ApiModel):
     name: str = Field(min_length=2, max_length=100)
     email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-    password: str = Field(min_length=12, max_length=200)
+    password: str = Field(min_length=4, max_length=200)
     store_id: str = Field(min_length=2, max_length=32)
-    signup_code: str = Field(min_length=8, max_length=200)
+    signup_code: str = Field(min_length=4, max_length=200)
 
     @field_validator("name", "store_id")
     @classmethod
@@ -106,7 +106,7 @@ class PasswordResetRequest(ApiModel):
 
 class PasswordResetConfirmRequest(ApiModel):
     reset_token: str = Field(min_length=32, max_length=500)
-    new_password: str = Field(min_length=12, max_length=200)
+    new_password: str = Field(min_length=4, max_length=200)
 
 
 class PasswordResetRequestResponse(ApiModel):

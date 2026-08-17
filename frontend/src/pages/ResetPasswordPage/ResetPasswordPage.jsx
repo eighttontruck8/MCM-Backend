@@ -19,8 +19,8 @@ export default function ResetPasswordPage() {
       setErrorMessage('메일의 비밀번호 재설정 링크로 접속해주세요.');
       return;
     }
-    if (password.length < 12) {
-      setErrorMessage('새 비밀번호는 12자 이상이어야 합니다.');
+    if (password.length < 4) {
+      setErrorMessage('새 비밀번호는 4자 이상이어야 합니다.');
       return;
     }
     if (password !== confirmation) {
@@ -53,15 +53,15 @@ export default function ResetPasswordPage() {
             </div>
           </header>
           <main className="reset-password-page__content">
-            <p className="reset-password-page__description">기존 비밀번호와 다른 12자 이상의 비밀번호를 입력해주세요.</p>
+            <p className="reset-password-page__description">기존 비밀번호와 다른 4자 이상의 비밀번호를 입력해주세요.</p>
             <form onSubmit={handleSubmit}>
               <div className="reset-password-page__field">
                 <label htmlFor="new-password" className="reset-password-page__label">새 비밀번호</label>
-                <input id="new-password" type="password" autoComplete="new-password" required minLength={12} className="reset-password-page__input" placeholder="••••••••••••" value={password} onChange={(event) => setPassword(event.target.value)} />
+                <input id="new-password" type="password" autoComplete="new-password" required minLength={4} className="reset-password-page__input" placeholder="••••" value={password} onChange={(event) => setPassword(event.target.value)} />
               </div>
               <div className="reset-password-page__field">
                 <label htmlFor="confirm-password" className="reset-password-page__label">비밀번호 확인</label>
-                <input id="confirm-password" type="password" autoComplete="new-password" required minLength={12} className="reset-password-page__input" placeholder="••••••••••••" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+                <input id="confirm-password" type="password" autoComplete="new-password" required minLength={4} className="reset-password-page__input" placeholder="••••" value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
               </div>
               {!resetToken && <p className="reset-password-page__error" role="alert">유효한 재설정 링크가 없습니다.</p>}
               {errorMessage && <p className="reset-password-page__error" role="alert">{errorMessage}</p>}

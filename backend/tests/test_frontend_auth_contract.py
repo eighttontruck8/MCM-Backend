@@ -53,6 +53,7 @@ def test_staff_login_and_signup_flow_is_connected() -> None:
     assert "navigate('/staff/waiting', { replace: true })" in signup
     assert "'/api/v1/auth/staff/signup'" in client
     assert "signup_code: signupCode" in client
+    assert "minLength={4}" in signup
     app = (REPOSITORY_ROOT / "frontend" / "src" / "App.jsx").read_text(encoding="utf-8")
     assert 'RequireAuth role="STAFF"' in app
     assert "user?.role !== role" in app
