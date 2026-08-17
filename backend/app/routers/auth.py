@@ -144,8 +144,12 @@ def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> M
         title="Client Advisor",
         experience_years=0,
     )
-    db.add_all([user, staff])
+    # PostgreSQL은 관계 매핑이 없는 두 Mapper의 INSERT 순서를 보장하지 않으므로
+    # users 행을 먼저 확정한 뒤 외래키를 가진 staff 행을 저장한다.
+    db.add(user)
     try:
+        db.flush()
+        db.add(staff)
         db.flush()
     except IntegrityError:
         db.rollback()

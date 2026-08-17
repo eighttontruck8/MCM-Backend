@@ -11,7 +11,7 @@ from urllib.parse import parse_qs, urlsplit
 import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
-from sqlalchemy import select
+from sqlalchemy import event, select
 
 from app.main import create_app
 from app.models import AuditLog, Consent, Customer, PasswordResetToken, Recommendation, Staff, StaffAssignment, User
@@ -229,6 +229,13 @@ def test_staff_signup_requires_code_and_creates_store_account() -> None:
         demo_qr_token=TEST_QR_TOKEN,
         staff_signup_code="1234",
     )
+    # PostgreSQL과 동일하게 외래키를 강제해 users보다 staff가 먼저 저장되는 회귀를 검출한다.
+    @event.listens_for(app.state.database.engine, "connect")
+    def enable_sqlite_foreign_keys(dbapi_connection, _connection_record) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     with TestClient(app) as client:
         signup = {
             "name": " 신규 직원 ",
