@@ -246,15 +246,19 @@ def test_staff_signup_requires_code_and_creates_store_account() -> None:
 
         response = client.post("/api/v1/auth/staff/signup", json=signup)
         assert response.status_code == 201, response.text
-        payload = response.json()
-        assert payload["user"]["role"] == "STAFF"
-        assert payload["user"]["display_name"] == "신규 직원"
-        assert payload["user"]["store_id"] == "S001"
+        assert response.json()["message"] == "직원 계정이 생성되었습니다. 로그인해주세요."
 
         with client.app.state.database.session_factory() as session:
-            staff = session.get(Staff, payload["user"]["id"])
+            user = session.scalar(select(User).where(User.email == "new.staff@example.com"))
+            assert user.role == "STAFF"
+            assert user.display_name == "신규 직원"
+            staff = session.get(Staff, user.id)
             assert staff.store_id == "S001"
             assert staff.title == "Client Advisor"
+
+        duplicate = client.post("/api/v1/auth/staff/signup", json=signup)
+        assert duplicate.status_code == 409
+        assert duplicate.json()["error"]["code"] == "EMAIL_ALREADY_REGISTERED"
 
         login_response = client.post(
             "/api/v1/auth/login",

@@ -276,6 +276,7 @@
 
 .login-page__submit:disabled { cursor:wait; opacity:0.65; }
 .login-page__error { margin:0; color:#a33; font-size:12px; line-height:18px; }
+.login-page__notice { margin:0; color:#2a6e3f; font-size:12px; line-height:18px; }
 
 @media (max-width: 430px) {
   .login-page__body {

@@ -107,9 +107,9 @@ def signup(body: CustomerSignupRequest, request: Request, db: DbSession) -> Toke
     return issue_tokens(user, request, db)
 
 
-@router.post("/auth/staff/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> TokenResponse:
-    """가입 코드를 검증해 매장 소속 직원 계정을 생성하고 즉시 로그인한다."""
+@router.post("/auth/staff/signup", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> MessageResponse:
+    """가입 코드를 검증해 매장 소속 직원 계정을 생성한다."""
     # [Backend-12-'직원 셀프 회원가입'] 비공개 가입 코드로 직원 권한 생성을 제한한다.
     request.app.state.rate_limiter.enforce(
         rate_limit_key("staff_signup", request.client.host if request.client else None, body.email),
@@ -159,7 +159,8 @@ def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> T
         resource_id=user.id,
         metadata={"role": UserRole.STAFF.value, "store_id": store.id},
     )
-    return issue_tokens(user, request, db)
+    db.commit()
+    return MessageResponse(message="직원 계정이 생성되었습니다. 로그인해주세요.")
 
 
 def stored_refresh_token(raw_token: str, request: Request, db: Session) -> tuple[dict, RefreshToken]:

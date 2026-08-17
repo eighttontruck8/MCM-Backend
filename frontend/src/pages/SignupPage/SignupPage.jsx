@@ -30,7 +30,7 @@ export default function SignupPage() {
     try {
       if (isStaffSignup) {
         await signupStaff({ name, email, password, storeId, signupCode });
-        navigate('/staff/waiting', { replace: true });
+        navigate('/login?role=staff&reason=signup-complete', { replace: true });
         return;
       }
       await signupCustomer({ name, phone, email, password });
@@ -44,6 +44,10 @@ export default function SignupPage() {
       }
       navigate('/main', { replace: true });
     } catch (error) {
+      if (isStaffSignup && ['EMAIL_ALREADY_REGISTERED', 'ACCOUNT_ALREADY_REGISTERED'].includes(error.code)) {
+        navigate('/login?role=staff&reason=already-registered', { replace: true });
+        return;
+      }
       setErrorMessage(error.message || '회원가입하지 못했습니다.');
     } finally {
       setIsSubmitting(false);

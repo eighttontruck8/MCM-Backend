@@ -11,9 +11,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(() => (
-    searchParams.get('reason') === 'auth-required' ? '서비스 이용은 로그인이 필요합니다.' : ''
-  ));
+  const [errorMessage, setErrorMessage] = useState(() => {
+    if (searchParams.get('reason') === 'auth-required') return '서비스 이용은 로그인이 필요합니다.';
+    return '';
+  });
+  const noticeMessage = {
+    'signup-complete': '직원 계정이 생성되었습니다. 로그인해주세요.',
+    'already-registered': '이미 가입된 직원 계정입니다. 로그인해주세요.',
+  }[searchParams.get('reason')] ?? '';
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
@@ -147,6 +152,7 @@ export default function LoginPage() {
             </div>
 
             {errorMessage && <p className="login-page__error" role="alert">{errorMessage}</p>}
+            {noticeMessage && <p className="login-page__notice" role="status">{noticeMessage}</p>}
 
             <button type="submit" className="login-page__submit" data-node-id="17:33" data-name="Container" disabled={isSubmitting}>
               {isSubmitting ? '로그인 중...' : isStaffLogin ? '직원 로그인' : '로그인'}
