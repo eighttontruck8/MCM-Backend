@@ -14,6 +14,9 @@ def test_signup_and_login_screens_use_email_identity() -> None:
     client = (REPOSITORY_ROOT / "frontend" / "src" / "api" / "client.js").read_text(
         encoding="utf-8"
     )
+    signup_css = (
+        REPOSITORY_ROOT / "frontend" / "src" / "pages" / "SignupPage" / "SignupPage.css"
+    ).read_text(encoding="utf-8")
 
     assert "아이디" not in signup
     assert 'htmlFor="signup-email"' in signup
@@ -26,3 +29,7 @@ def test_signup_and_login_screens_use_email_identity() -> None:
     assert "'/api/v1/auth/signup'" in client
     assert "await signupCustomer({ name, phone, email, password })" in signup
     assert "createOrResumeCheckin(entryTag.tag_token)" in signup
+    assert "margin: 0 auto" in signup_css
+    assert "max-width: 100%" in signup_css
+    assert ".signup-page__input {\n  width: 100%" in signup_css
+    assert ".signup-page__submit {\n  width: 100%" in signup_css
