@@ -51,8 +51,10 @@ def test_staff_login_and_signup_flow_is_connected() -> None:
     assert "직원 계정으로 로그인해주세요." in login
     assert "signupStaff({ name, email, password, storeId, signupCode })" in signup
     assert "navigate('/login?role=staff&reason=signup-complete', { replace: true })" in signup
-    assert "reason=already-registered" in signup
+    assert "이미 고객 또는 직원으로 가입된 이메일입니다." in signup
+    assert "reason=already-registered" not in signup
     assert "직원 계정이 생성되었습니다. 로그인해주세요." in login
+    assert "setNoticeMessage('')" in login
     assert "'/api/v1/auth/staff/signup'" in client
     assert "signup_code: signupCode" in client
     assert "minLength={4}" in signup

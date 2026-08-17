@@ -45,7 +45,7 @@ export default function SignupPage() {
       navigate('/main', { replace: true });
     } catch (error) {
       if (isStaffSignup && ['EMAIL_ALREADY_REGISTERED', 'ACCOUNT_ALREADY_REGISTERED'].includes(error.code)) {
-        navigate('/login?role=staff&reason=already-registered', { replace: true });
+        setErrorMessage('이미 고객 또는 직원으로 가입된 이메일입니다. 기존 계정으로 로그인해주세요.');
         return;
       }
       setErrorMessage(error.message || '회원가입하지 못했습니다.');

@@ -15,15 +15,17 @@ export default function LoginPage() {
     if (searchParams.get('reason') === 'auth-required') return '서비스 이용은 로그인이 필요합니다.';
     return '';
   });
-  const noticeMessage = {
-    'signup-complete': '직원 계정이 생성되었습니다. 로그인해주세요.',
-    'already-registered': '이미 가입된 직원 계정입니다. 로그인해주세요.',
-  }[searchParams.get('reason')] ?? '';
+  const [noticeMessage, setNoticeMessage] = useState(() => (
+    searchParams.get('reason') === 'signup-complete'
+      ? '직원 계정이 생성되었습니다. 로그인해주세요.'
+      : ''
+  ));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setErrorMessage('');
+    setNoticeMessage('');
     setIsSubmitting(true);
     try {
       const tokens = await login(email, password, remember);
