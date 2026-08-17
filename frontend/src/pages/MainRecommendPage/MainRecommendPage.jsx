@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchMyProfile, fetchRecommendations } from '../../api/client';
+import { createOrResumeDemoCheckin, fetchMyProfile, fetchRecommendations } from '../../api/client';
 import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
 import ProductImage from '../../components/ProductImage/ProductImage';
+import { saveCheckin } from '../../utils/checkinSession';
 import { useWishlist } from '../../utils/wishlistStorage';
 import './MainRecommendPage.css';
 
@@ -13,6 +14,7 @@ export default function MainRecommendPage() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
   const wishlist = useWishlist();
 
   useEffect(() => {
@@ -30,6 +32,20 @@ export default function MainRecommendPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const handleCheckin = async () => {
+    setIsCheckingIn(true);
+    setErrorMessage('');
+    try {
+      const checkin = await createOrResumeDemoCheckin();
+      saveCheckin(checkin);
+      navigate('/checkin-complete');
+    } catch (error) {
+      setErrorMessage(error.message || '체크인을 시작하지 못했습니다.');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
   return (
     <div className="main-recommend-page" data-node-id="13:2846" data-name="메인화면 1">
       <div className="main-recommend-page__body">
@@ -37,7 +53,10 @@ export default function MainRecommendPage() {
           <div className="main-recommend-page__screen">
             <header className="main-recommend-page__topbar">
               <div className="main-recommend-page__brand">M·Journey</div>
-              <div className="main-recommend-page__checkin">◉ <span>체크인</span></div>
+              {/* [Frontend-13-'홈 데모 체크인'] 실제 QR과 동일한 서버 검증 체크인을 홈에서도 시작한다. */}
+              <button type="button" className="main-recommend-page__checkin" onClick={handleCheckin} disabled={isCheckingIn}>
+                ◉ <span>{isCheckingIn ? '확인 중' : '체크인'}</span>
+              </button>
             </header>
 
             <section className="main-recommend-page__hero">

@@ -177,6 +177,17 @@ export async function createOrResumeCheckin(tagToken) {
   }
 }
 
+export async function createOrResumeDemoCheckin() {
+  try {
+    return await apiRequest('/api/v1/check-ins/demo', { method: 'POST' });
+  } catch (error) {
+    if (error.code === 'ACTIVE_CHECKIN_EXISTS' && error.details?.checkin_id) {
+      return fetchCheckin(error.details.checkin_id);
+    }
+    throw error;
+  }
+}
+
 export function setShoppingMode(checkinId, shoppingMode) {
   return apiRequest(`/api/v1/check-ins/${encodeURIComponent(checkinId)}/shopping-mode`, {
     method: 'PATCH',

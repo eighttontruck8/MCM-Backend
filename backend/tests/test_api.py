@@ -336,6 +336,23 @@ def test_qr_entry_validation_redirect_and_nfc_compatibility() -> None:
         assert nfc_checkin.status_code == 201
 
 
+def test_authenticated_customer_can_start_demo_checkin_from_home() -> None:
+    with make_client() as client:
+        customer_headers = headers(client, "customer2@example.com")
+        response = client.post("/api/v1/check-ins/demo", headers=customer_headers)
+
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["store"]["store_id"] == "S001"
+        assert payload["customer"]["customer_id"] == "C002"
+        assert payload["status"] == "CHECKED_IN"
+        assert TEST_QR_TOKEN not in response.text
+
+        duplicate = client.post("/api/v1/check-ins/demo", headers=customer_headers)
+        assert duplicate.status_code == 409
+        assert duplicate.json()["error"]["code"] == "ACTIVE_CHECKIN_EXISTS"
+
+
 def test_private_shopping_flow() -> None:
     with make_client() as client:
         auth_headers = headers(client)

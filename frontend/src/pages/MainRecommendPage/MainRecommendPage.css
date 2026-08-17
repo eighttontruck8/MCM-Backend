@@ -68,6 +68,12 @@
   display:flex;
   gap:5px;
   align-items:center;
+  cursor: pointer;
+}
+
+.main-recommend-page__checkin:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 
 .main-recommend-page__hero {

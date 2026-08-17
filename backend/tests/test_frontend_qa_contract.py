@@ -63,6 +63,16 @@ def test_catalog_fallback_and_product_image_placeholder_are_connected() -> None:
     assert "IMAGE<br />COMING SOON" in product_image
 
 
+def test_home_checkin_button_uses_server_side_demo_entry() -> None:
+    main_page = _read("pages/MainRecommendPage/MainRecommendPage.jsx")
+    client = _read("api/client.js")
+
+    assert "createOrResumeDemoCheckin" in main_page
+    assert "onClick={handleCheckin}" in main_page
+    assert "saveCheckin(checkin)" in main_page
+    assert "'/api/v1/check-ins/demo'" in client
+
+
 def test_css_does_not_define_fonts_smaller_than_eleven_pixels() -> None:
     undersized = re.compile(r"font-size\s*:\s*(?:[0-9](?:\.\d+)?|10(?:\.\d+)?)px")
     for stylesheet in FRONTEND_SOURCE.rglob("*.css"):

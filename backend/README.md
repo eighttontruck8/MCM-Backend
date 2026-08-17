@@ -184,6 +184,8 @@ https://<backend-host>/entry/<M_JOURNEY_DEMO_QR_TOKEN>
 
 프론트는 로그인 전후에 `tag_token`을 보존하고, 로그인 완료 후 아래 체크인 API를 호출한다. 모바일 실기기 데모에서는 `localhost` 대신 휴대폰에서 접근 가능한 배포 주소 또는 LAN 주소를 설정해야 한다.
 
+실제 매장에서는 QR 스캔이 기본이다. 해커톤 화면 시연에서는 로그인한 고객이 홈 상단의 `체크인` 버튼을 누르면 `POST /api/v1/check-ins/demo`가 서버의 `M_JOURNEY_DEMO_QR_TOKEN`을 사용해 동일한 검증·체크인 흐름을 실행한다. QR 토큰은 프론트 번들에 포함하지 않는다.
+
 로그인:
 
 ```text

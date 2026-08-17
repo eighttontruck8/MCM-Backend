@@ -72,6 +72,7 @@ def create_app(
     )
     application.state.database = database
     application.state.jwt_secret = jwt_secret or settings.jwt_secret
+    application.state.demo_qr_token = demo_qr_token or settings.demo_qr_token
     application.state.staff_signup_code = (
         staff_signup_code if staff_signup_code is not None else settings.staff_signup_code
     )

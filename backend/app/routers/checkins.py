@@ -146,6 +146,21 @@ def create_checkin(
     )
 
 
+@router.post("/demo", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_demo_checkin(
+    request: Request,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> CheckinCreateResponse:
+    """홈 버튼 시연을 위해 서버에 설정된 QR 태그로 동일한 체크인 계약을 실행한다."""
+    # [Backend-13-'홈 데모 체크인'] 실제 QR 토큰은 프론트에 하드코딩하지 않고 서버 설정에서만 읽는다.
+    return create_checkin(
+        CheckinCreateRequest(tag_token=request.app.state.demo_qr_token),
+        customer_id,
+        db,
+    )
+
+
 @router.get("/{checkin_id}", response_model=CheckinResponse)
 def get_checkin(checkin_id: str, customer_id: CustomerId, db: DbSession) -> CheckinResponse:
     return to_checkin_response(owned_checkin(checkin_id, customer_id, db), db)
