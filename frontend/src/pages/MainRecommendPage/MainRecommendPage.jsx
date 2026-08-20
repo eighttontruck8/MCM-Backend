@@ -8,6 +8,9 @@ import { mockProducts } from '../../mock/mockProducts';
 import brandImage from '../../assets/brand.png';
 import './MainRecommendPage.css';
 
+// product_id → 로컬 이미지 매핑
+const LOCAL_IMAGE_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id, p.image_url]));
+
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function MainRecommendPage() {
   const navigate = useNavigate();
@@ -22,7 +25,12 @@ export default function MainRecommendPage() {
       try {
         const [profile, recommendations] = await Promise.all([fetchMyProfile(), fetchRecommendations()]);
         setCustomer(profile);
-        setProducts(recommendations.items);
+        // 백엔드 이미지 URL 대신 로컬 avif 사용
+        const items = (recommendations.items || []).map((p) => ({
+          ...p,
+          image_url: LOCAL_IMAGE_MAP[p.product_id] || p.image_url,
+        }));
+        setProducts(items);
       } catch (error) {
         // API 실패 시 mock 데이터로 fallback
         const fallback = mockProducts.slice(0, 6).map((p) => ({

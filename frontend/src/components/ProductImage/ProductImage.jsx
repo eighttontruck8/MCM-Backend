@@ -5,6 +5,8 @@ import './ProductImage.css';
 function resolveImageUrl(source) {
   if (!source) return null;
   if (/^https?:\/\//i.test(source)) return source;
+  // public 폴더의 로컬 이미지 (.avif, .png, .jpg, .svg 등)는 그대로 사용
+  if (/^\/.+\.(avif|png|jpe?g|webp|svg|gif)$/i.test(source)) return source;
   return `${API_BASE_URL}${source.startsWith('/') ? source : `/${source}`}`;
 }
 

@@ -4,7 +4,10 @@ import { fetchProducts, fetchRecommendations } from '../../api/client';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
+import { mockProducts } from '../../mock/mockProducts';
 import './AllRecommendPage.css';
+
+const LOCAL_IMAGE_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id, p.image_url]));
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function AllRecommendPage() {
@@ -24,7 +27,7 @@ export default function AllRecommendPage() {
         ]);
         const merged = [...recommendations.items, ...catalog.items].filter(
           (product, index, items) => items.findIndex((item) => item.product_id === product.product_id) === index,
-        );
+        ).map((p) => ({ ...p, image_url: LOCAL_IMAGE_MAP[p.product_id] || p.image_url }));
         setProducts(merged);
       } catch (error) {
         setErrorMessage(error.message);

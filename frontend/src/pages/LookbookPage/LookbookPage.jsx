@@ -5,8 +5,11 @@ import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { getCheckin } from '../../utils/checkinSession';
 import { getLookbook, saveLookbook, saveSelectedLook } from '../../utils/lookbookSession';
+import { mockProducts } from '../../mock/mockProducts';
 import lookbookFallback from '../../mock/customerLookbookMock.json';
 import './LookbookPage.css';
+
+const LOCAL_IMAGE_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id, p.image_url]));
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function LookbookPage() {
@@ -26,8 +29,10 @@ export default function LookbookPage() {
           try {
             const response = await createLookbook(checkin.checkin_id);
             if (Array.isArray(response?.looks) && response.looks.length > 0) {
-              saveLookbook(checkin.checkin_id, response);
-              setLookbook(response);
+              // 로컬 이미지 매핑 적용
+              const mapped = { ...response, looks: response.looks.map((l) => ({ ...l, image_url: LOCAL_IMAGE_MAP[l.product_id] || l.image_url })) };
+              saveLookbook(checkin.checkin_id, mapped);
+              setLookbook(mapped);
               return;
             }
             setNoticeMessage('생성된 맞춤 룩북에 상품이 없어 현재 매장의 추천 상품을 보여드립니다.');
@@ -43,7 +48,7 @@ export default function LookbookPage() {
           product_id: product.product_id,
           product: product.name,
           styling: product.tags?.slice(0, 2).join(' · ') || product.category,
-          image_url: product.image_url,
+          image_url: LOCAL_IMAGE_MAP[product.product_id] || product.image_url,
           price: product.price,
           in_stock: product.inventory?.in_stock ?? false,
         }));
