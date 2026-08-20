@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { getAuthUser } from '../../api/client';
 import { getCheckin } from '../../utils/checkinSession';
+import { getCheckinContinuationPath } from '../../utils/checkinNavigation';
 import './CheckInCompletePage.css';
 
 const imgIcon = 'https://www.figma.com/api/mcp/asset/b5442dca-6d58-44e0-9fdd-e23966453d03.svg';
@@ -13,23 +14,7 @@ export default function CheckInCompletePage() {
   const checkedInAt = checkin?.checked_in_at ? new Date(checkin.checked_in_at).toLocaleString('ko-KR') : '방금 전';
 
   const handleNext = () => {
-    if (checkin?.status === 'SELF_SHOPPING') {
-      navigate('/lookbook');
-      return;
-    }
-    if (checkin?.status === 'WAITING_FOR_STAFF') {
-      navigate('/visit-info-complete');
-      return;
-    }
-    if (checkin?.status === 'ASSIGNED' || checkin?.status === 'SERVING') {
-      navigate('/staff-assignment');
-      return;
-    }
-    if (checkin?.shopping_mode === 'STAFF_ASSISTED') {
-      navigate('/visit-info');
-      return;
-    }
-    navigate('/shopping-option');
+    navigate(getCheckinContinuationPath(checkin));
   };
   return (
     <div className="checkin-complete-page" data-node-id="13:1646" data-name="체크인 완료">

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createOrResumeStoreCheckin, fetchStores } from '../../api/client';
 import { saveCheckin } from '../../utils/checkinSession';
+import { getCheckinContinuationPath } from '../../utils/checkinNavigation';
 import './StoreSelectionPage.css';
 
 function distanceKm(position, store) {
@@ -50,7 +51,7 @@ export default function StoreSelectionPage() {
     try {
       const checkin = await createOrResumeStoreCheckin(storeId);
       saveCheckin(checkin);
-      navigate('/shopping-option');
+      navigate(getCheckinContinuationPath(checkin));
     } catch (error) {
       setErrorMessage(error.message);
     } finally {

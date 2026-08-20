@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setShoppingMode } from '../../api/client';
 import { getCheckin, saveCheckin } from '../../utils/checkinSession';
+import { getCheckinContinuationPath } from '../../utils/checkinNavigation';
 import './ShoppingOptionPage.css';
 
 const PERSONALIZATION_QUESTIONS = [
@@ -18,6 +19,18 @@ export default function ShoppingOptionPage() {
   );
   const [submittingMode, setSubmittingMode] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    const checkin = getCheckin();
+    if (!checkin?.checkin_id) {
+      navigate('/check-in', { replace: true });
+      return;
+    }
+    const continuationPath = getCheckinContinuationPath(checkin);
+    if (continuationPath !== '/shopping-option') {
+      navigate(continuationPath, { replace: true });
+    }
+  }, [navigate]);
 
   const handleSelect = async (shoppingMode) => {
     const checkin = getCheckin();
