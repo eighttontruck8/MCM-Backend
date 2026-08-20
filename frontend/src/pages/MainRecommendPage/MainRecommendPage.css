@@ -13,7 +13,6 @@
   object-fit: cover;
 }
 
-.product-image { background-position: center; background-size: cover; }
 .recommend-state { margin: 0; padding: 24px 20px; color: #7a746e; font-family: 'DM Sans', sans-serif; font-size: var(--font-body); line-height: 1.6; }
 .recommend-state--error { color: #b42318; }
 .recommend-favorite { margin-top: 10px; border: 0; background: transparent; color: #7a746e; cursor: pointer; font-size: 11px; }
@@ -142,7 +141,8 @@
   box-sizing: border-box;
 }
 
-.product-image {
+/* [Frontend-17-'메인 추천 상품 카드 레이아웃'] 다른 페이지의 전역 이미지 규칙과 충돌하지 않도록 카드 전용 클래스를 사용한다. */
+.product-card__image {
   width: 100%;
   height: 220px;
   background: #f2f0ed;
@@ -152,7 +152,7 @@
   overflow: hidden;
 }
 
-.product-image .product-visual__image {
+.product-card__image .product-visual__image {
   width: 100%;
   height: 100%;
   object-fit: cover;

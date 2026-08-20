@@ -77,7 +77,7 @@ export default function MainRecommendPage() {
           <div className="product-grid">
             {products.slice(0, 4).map((product) => (
               <article key={product.product_id} className="product-card">
-                <ProductImage className="product-image" src={product.image_url} alt={product.name} />
+                <ProductImage className="product-card__image" src={product.image_url} alt={product.name} />
                 <div className="product-meta">
                   <div className="brand">{product.line}</div>
                   <div className="name">{product.name}</div>
