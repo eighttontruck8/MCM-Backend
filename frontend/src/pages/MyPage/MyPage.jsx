@@ -38,7 +38,7 @@ export default function MyPage() {
   };
 
   return (
-    <PageLayout navActive="mypage" eyebrow="MY PAGE">
+    <PageLayout navActive="mypage">
       {errorMessage && <p className="my-page__state" role="alert">{errorMessage}</p>}
       {isLoading ? <p className="my-page__state">고객 정보를 불러오고 있습니다.</p> : (
         <>
