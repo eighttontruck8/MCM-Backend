@@ -38,14 +38,14 @@ export default function MyPage() {
   };
 
   return (
-    <PageLayout navActive="mypage" eyebrow="MY PAGE" title={customer?.name ?? '마이페이지'}>
+    <PageLayout navActive="mypage" eyebrow="MY PAGE">
       {errorMessage && <p className="my-page__state" role="alert">{errorMessage}</p>}
       {isLoading ? <p className="my-page__state">고객 정보를 불러오고 있습니다.</p> : (
         <>
           <section className="profile-hero">
             <div className="avatar">{customer?.name?.charAt(0) ?? '고'}</div>
             <div className="profile-info">
-              <div className="profile-name">{customer?.name ?? '고객'}</div>
+              <div className="profile-name">{customer?.name ?? '고객'}님</div>
               <div className="profile-id">#{customer?.customer_id}</div>
             </div>
             <div className="profile-stats">
