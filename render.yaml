@@ -1,0 +1,66 @@
+# [Backend-10-'Render 원클릭 배포'] API, 정적 프론트와 PostgreSQL을 같은 Blueprint로 구성한다.
+services:
+  - type: web
+    name: mjourney-api-eighttontruck8
+    runtime: docker
+    plan: free
+    region: singapore
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/ready
+    autoDeployTrigger: commit
+    envVars:
+      - key: M_JOURNEY_ENVIRONMENT
+        value: production
+      - key: M_JOURNEY_DATABASE_URL
+        fromDatabase:
+          name: mjourney-db-eighttontruck8
+          property: connectionString
+      - key: M_JOURNEY_PUBLIC_API_BASE_URL
+        value: https://mjourney-api-eighttontruck8.onrender.com
+      - key: M_JOURNEY_FRONTEND_BASE_URL
+        value: https://mjourney-web-eighttontruck8.onrender.com
+      - key: M_JOURNEY_CORS_ORIGINS
+        value: https://mjourney-web-eighttontruck8.onrender.com
+      - key: M_JOURNEY_AUTO_CREATE_SCHEMA
+        value: "false"
+      - key: M_JOURNEY_SEED_DEMO_DATA
+        value: "true"
+      - key: M_JOURNEY_AI_PROVIDER
+        value: rule_based
+      - key: M_JOURNEY_EXPOSE_PASSWORD_RESET_TOKEN
+        value: "false"
+      - key: M_JOURNEY_JWT_SECRET
+        generateValue: true
+      - key: M_JOURNEY_DEMO_PASSWORD
+        sync: false
+      - key: M_JOURNEY_STAFF_SIGNUP_CODE
+        sync: false
+      - key: M_JOURNEY_DEMO_QR_TOKEN
+        sync: false
+
+  - type: web
+    name: mjourney-web-eighttontruck8
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_BASE_URL
+        value: https://mjourney-api-eighttontruck8.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: mjourney-db-eighttontruck8
+    plan: free
+    region: singapore
+    databaseName: mjourney
+    user: mjourney
+    ipAllowList: []

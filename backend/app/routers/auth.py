@@ -1,19 +1,24 @@
 from __future__ import annotations
 
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_user
 from app.errors import DomainError
-from app.models import PasswordResetToken, RefreshToken, Staff, User
+from app.models import Customer, PasswordResetToken, RefreshToken, Staff, Store, User
 from app.schemas import (
     AuthUserResponse,
+    CustomerSignupRequest,
     LoginRequest,
     LogoutRequest,
     MessageResponse,
@@ -21,13 +26,16 @@ from app.schemas import (
     PasswordResetRequest,
     PasswordResetRequestResponse,
     RefreshRequest,
+    StaffSignupRequest,
     TokenResponse,
     UserRole,
 )
 from app.security import TokenError, create_token, decode_token, hash_password, token_hash, verify_password
+from app.rate_limit import rate_limit_key
 
 
 router = APIRouter(prefix="/api/v1", tags=["auth"])
+mailer_logger = logging.getLogger("mjourney.mail")
 DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[AuthenticatedUser, Depends(current_user)]
 
@@ -55,6 +63,110 @@ def issue_tokens(user: User, request: Request, db: Session) -> TokenResponse:
     return TokenResponse(access_token=access_token, refresh_token=refresh_token, expires_in=access_minutes * 60, user=user_response(user, staff))
 
 
+@router.post("/auth/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def signup(body: CustomerSignupRequest, request: Request, db: DbSession) -> TokenResponse:
+    """고객 프로필과 인증 계정을 함께 생성하고 즉시 로그인한다."""
+    # [Backend-11-'고객 셀프 회원가입'] 프로필과 User를 같은 트랜잭션으로 생성해 불완전 계정을 막는다.
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("signup", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
+    if db.scalar(select(User.id).where(User.email == body.email)) is not None:
+        raise DomainError(409, "EMAIL_ALREADY_REGISTERED", "이미 가입된 이메일입니다.")
+    if db.scalar(select(Customer.id).where(Customer.phone == body.phone)) is not None:
+        raise DomainError(409, "PHONE_ALREADY_REGISTERED", "이미 가입된 연락처입니다.")
+
+    now = utc_now()
+    customer_id = f"C{secrets.token_hex(8)}"
+    customer = Customer(id=customer_id, name=body.name, phone=body.phone)
+    user = User(
+        id=customer_id,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=UserRole.CUSTOMER.value,
+        display_name=body.name,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add_all([customer, user])
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise DomainError(409, "ACCOUNT_ALREADY_REGISTERED", "이미 가입된 계정 정보입니다.") from None
+    record_audit(
+        db,
+        request,
+        action="AUTH_SIGNUP_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": UserRole.CUSTOMER.value},
+    )
+    return issue_tokens(user, request, db)
+
+
+@router.post("/auth/staff/signup", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
+def staff_signup(body: StaffSignupRequest, request: Request, db: DbSession) -> MessageResponse:
+    """가입 코드를 검증해 매장 소속 직원 계정을 생성한다."""
+    # [Backend-12-'직원 셀프 회원가입'] 비공개 가입 코드로 직원 권한 생성을 제한한다.
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("staff_signup", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
+    configured_code = request.app.state.staff_signup_code
+    if not configured_code:
+        raise DomainError(503, "STAFF_SIGNUP_DISABLED", "직원 회원가입이 설정되지 않았습니다.")
+    if not secrets.compare_digest(body.signup_code, configured_code):
+        raise DomainError(403, "INVALID_STAFF_SIGNUP_CODE", "직원 가입 코드가 올바르지 않습니다.")
+    if db.scalar(select(User.id).where(User.email == body.email)) is not None:
+        raise DomainError(409, "EMAIL_ALREADY_REGISTERED", "이미 가입된 이메일입니다.")
+    store = db.get(Store, body.store_id)
+    if store is None or not store.is_active:
+        raise DomainError(404, "STORE_NOT_FOUND", "가입 가능한 매장을 찾을 수 없습니다.")
+
+    now = utc_now()
+    staff_id = f"ST{secrets.token_hex(8)}"
+    user = User(
+        id=staff_id,
+        email=body.email,
+        password_hash=hash_password(body.password),
+        role=UserRole.STAFF.value,
+        display_name=body.name,
+        created_at=now,
+        updated_at=now,
+    )
+    staff = Staff(
+        id=staff_id,
+        store_id=store.id,
+        title="Client Advisor",
+        experience_years=0,
+    )
+    # PostgreSQL은 관계 매핑이 없는 두 Mapper의 INSERT 순서를 보장하지 않으므로
+    # users 행을 먼저 확정한 뒤 외래키를 가진 staff 행을 저장한다.
+    db.add(user)
+    try:
+        db.flush()
+        db.add(staff)
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        raise DomainError(409, "ACCOUNT_ALREADY_REGISTERED", "이미 가입된 계정 정보입니다.") from None
+    record_audit(
+        db,
+        request,
+        action="AUTH_SIGNUP_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": UserRole.STAFF.value, "store_id": store.id},
+    )
+    db.commit()
+    return MessageResponse(message="직원 계정이 생성되었습니다. 로그인해주세요.")
+
+
 def stored_refresh_token(raw_token: str, request: Request, db: Session) -> tuple[dict, RefreshToken]:
     try:
         payload = decode_token(raw_token, request.app.state.jwt_secret, "refresh")
@@ -68,9 +180,33 @@ def stored_refresh_token(raw_token: str, request: Request, db: Session) -> tuple
 
 @router.post("/auth/login", response_model=TokenResponse)
 def login(body: LoginRequest, request: Request, db: DbSession) -> TokenResponse:
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("login", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["login"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     user = db.scalar(select(User).where(User.email == body.email.strip().lower()))
     if user is None or not user.is_active or not verify_password(body.password, user.password_hash):
+        record_audit(
+            db,
+            request,
+            action="AUTH_LOGIN_FAILED",
+            resource_type="USER",
+            actor_id=user.id if user else None,
+            resource_id=user.id if user else None,
+            metadata={"outcome": "DENIED"},
+        )
+        db.commit()
         raise DomainError(401, "INVALID_CREDENTIALS", "이메일 또는 비밀번호가 올바르지 않습니다.")
+    record_audit(
+        db,
+        request,
+        action="AUTH_LOGIN_SUCCEEDED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
+        metadata={"role": user.role},
+    )
     return issue_tokens(user, request, db)
 
 
@@ -86,8 +222,16 @@ def refresh(body: RefreshRequest, request: Request, db: DbSession) -> TokenRespo
 
 @router.post("/auth/logout", response_model=MessageResponse)
 def logout(body: LogoutRequest, request: Request, db: DbSession) -> MessageResponse:
-    _, stored = stored_refresh_token(body.refresh_token, request, db)
+    payload, stored = stored_refresh_token(body.refresh_token, request, db)
     stored.revoked_at = utc_now()
+    record_audit(
+        db,
+        request,
+        action="AUTH_LOGOUT",
+        resource_type="USER",
+        actor_id=payload["sub"],
+        resource_id=payload["sub"],
+    )
     db.commit()
     return MessageResponse(message="로그아웃되었습니다.")
 
@@ -102,6 +246,11 @@ def request_password_reset(
     request: Request,
     db: DbSession,
 ) -> PasswordResetRequestResponse:
+    request.app.state.rate_limiter.enforce(
+        rate_limit_key("password_reset", request.client.host if request.client else None, body.email),
+        limit=request.app.state.rate_limits["password_reset"],
+        window_seconds=request.app.state.rate_limit_window_seconds,
+    )
     user = db.scalar(select(User).where(User.email == body.email.strip().lower()))
     raw_token = None
     if user is not None and user.is_active:
@@ -124,7 +273,27 @@ def request_password_reset(
                 created_at=now,
             )
         )
-        db.commit()
+    record_audit(
+        db,
+        request,
+        action="PASSWORD_RESET_REQUESTED",
+        resource_type="USER",
+        actor_id=user.id if user else None,
+        resource_id=user.id if user else None,
+        metadata={"account_matched": user is not None and user.is_active},
+    )
+    db.commit()
+    if raw_token is not None and user is not None:
+        reset_url = f"{request.app.state.frontend_base_url}/reset-password?token={quote(raw_token, safe='')}"
+        try:
+            # [Backend-03-'SMTP 비밀번호 재설정 메일'] 토큰은 메일 본문에만 포함하고 로그에는 남기지 않는다.
+            request.app.state.password_reset_mailer.send_password_reset(
+                user.email,
+                reset_url,
+                request.app.state.password_reset_expire_minutes,
+            )
+        except Exception:
+            mailer_logger.exception("비밀번호 재설정 메일 발송에 실패했습니다.")
     return PasswordResetRequestResponse(
         message="계정이 존재하면 비밀번호 재설정 안내가 전송됩니다.",
         reset_token=(
@@ -138,6 +307,7 @@ def request_password_reset(
 @router.post("/auth/password-reset/confirm", response_model=MessageResponse)
 def confirm_password_reset(
     body: PasswordResetConfirmRequest,
+    request: Request,
     db: DbSession,
 ) -> MessageResponse:
     reset_token = db.scalar(
@@ -176,6 +346,14 @@ def confirm_password_reset(
             RefreshToken.revoked_at.is_(None),
         )
         .values(revoked_at=now)
+    )
+    record_audit(
+        db,
+        request,
+        action="PASSWORD_RESET_COMPLETED",
+        resource_type="USER",
+        actor_id=user.id,
+        resource_id=user.id,
     )
     db.commit()
     return MessageResponse(message="비밀번호가 변경되었습니다. 다시 로그인해주세요.")

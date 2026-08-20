@@ -1,0 +1,9 @@
+.shopping-option-page { min-height: 100vh; width: 100%; display: flex; align-items: center; justify-content: center; padding: 28px; background: #fafaf8; }
+.shopping-option-page__card { width: min(100%, 337px); display: flex; flex-direction: column; text-align: center; }
+.shopping-option-page__eyebrow { margin: 0 0 16px; color: #a7835b; font-size: 11px; font-weight: 500; letter-spacing: 1.8px; }
+.shopping-option-page__title { margin: 0; color: #0a0a0a; font-size: 24px; font-weight: 500; line-height: 1.45; word-break: keep-all; }
+.shopping-option-page__consent-description { margin: 16px 4px 30px; color: #a19d98; font-size: 10px; font-weight: 400; line-height: 1.6; word-break: keep-all; }
+.shopping-option-page__accept { min-height: 54px; border: 1px solid #0a0a0a; background: #0a0a0a; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; }
+.shopping-option-page__decline { min-height: 48px; border: 0; background: transparent; color: #77716b; font-size: 11px; font-weight: 400; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.shopping-option-page button:disabled { cursor: wait; opacity: 0.6; }
+.shopping-option-page__error { margin: 12px 0 0; color: #b42318; font-size: 11px; line-height: 1.5; }

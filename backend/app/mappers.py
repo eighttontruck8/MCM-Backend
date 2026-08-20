@@ -20,7 +20,14 @@ def to_customer(customer: Customer) -> CustomerResponse:
 
 
 def to_store(store: Store) -> StoreResponse:
-    return StoreResponse(store_id=store.id, name=store.name, timezone=store.timezone)
+    return StoreResponse(
+        store_id=store.id,
+        name=store.name,
+        address=store.address,
+        latitude=store.latitude,
+        longitude=store.longitude,
+        timezone=store.timezone,
+    )
 
 
 def to_product(product: Product, inventory: Inventory | None = None) -> ProductResponse:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ApiModel(BaseModel):
@@ -39,9 +39,57 @@ class UserRole(StrEnum):
     STAFF = "STAFF"
 
 
+class EntryChannel(StrEnum):
+    QR = "QR"
+    NFC = "NFC"
+
+
 class LoginRequest(ApiModel):
     email: str = Field(min_length=3, max_length=255)
-    password: str = Field(min_length=8, max_length=200)
+    password: str = Field(min_length=4, max_length=200)
+
+
+class CustomerSignupRequest(ApiModel):
+    name: str = Field(min_length=2, max_length=100)
+    phone: str = Field(min_length=10, max_length=13, pattern=r"^01[016789]-?\d{3,4}-?\d{4}$")
+    email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=4, max_length=200)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if len(normalized) < 2:
+            raise ValueError("이름은 2자 이상이어야 합니다.")
+        return normalized
+
+    @field_validator("phone")
+    @classmethod
+    def normalize_phone(cls, value: str) -> str:
+        return value.replace("-", "")
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class StaffSignupRequest(ApiModel):
+    name: str = Field(min_length=2, max_length=100)
+    email: str = Field(min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(min_length=4, max_length=200)
+    store_id: str = Field(min_length=2, max_length=32)
+    signup_code: str = Field(min_length=4, max_length=200)
+
+    @field_validator("name", "store_id")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
 
 
 class RefreshRequest(ApiModel):
@@ -58,7 +106,7 @@ class PasswordResetRequest(ApiModel):
 
 class PasswordResetConfirmRequest(ApiModel):
     reset_token: str = Field(min_length=32, max_length=500)
-    new_password: str = Field(min_length=12, max_length=200)
+    new_password: str = Field(min_length=4, max_length=200)
 
 
 class PasswordResetRequestResponse(ApiModel):
@@ -97,7 +145,15 @@ class CustomerResponse(ApiModel):
 class StoreResponse(ApiModel):
     store_id: str
     name: str
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
     timezone: str
+
+
+class StoreListResponse(ApiModel):
+    items: list[StoreResponse]
+    next_cursor: str | None = None
 
 
 class InventoryResponse(ApiModel):
@@ -142,6 +198,17 @@ class PurchaseListResponse(ApiModel):
 
 class CheckinCreateRequest(ApiModel):
     tag_token: str = Field(min_length=8, max_length=255)
+
+
+class StoreCheckinCreateRequest(ApiModel):
+    store_id: str = Field(min_length=1, max_length=32)
+
+
+class EntryTagResponse(ApiModel):
+    tag_token: str
+    channel: EntryChannel
+    store: StoreResponse
+    checkin_url: str
 
 
 class CheckinCreateResponse(ApiModel):

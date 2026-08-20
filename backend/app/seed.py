@@ -6,8 +6,8 @@ from uuid import uuid4
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Customer, CustomerWishlist, Inventory, NfcTag, Product, PurchaseHistory, Staff, Store, User
-from app.schemas import UserRole
+from app.models import Customer, CustomerWishlist, EntryTag, Inventory, Product, PurchaseHistory, Staff, Store, User
+from app.schemas import EntryChannel, UserRole
 from app.security import hash_password
 
 
@@ -47,13 +47,22 @@ PRODUCTS = [
     ("P006", "비세토스 위켄더 백", "Weekender", "트래블백", ["코냑", "블랙"], "비세토스", 1850000, ["여행", "기내반입", "출장"], 2),
 ]
 
+DEMO_STORES = [
+    ("S001", "MCM 서울 플래그십", "서울 강남구 압구정로", 37.5270, 127.0286),
+    ("S002", "MCM 강남 데모 스토어", "서울 강남구 강남대로", 37.4979, 127.0276),
+    ("S003", "MCM 성수 데모 스토어", "서울 성동구 성수이로", 37.5445, 127.0560),
+]
 
-def seed_database(session: Session, demo_password: str | None = None) -> None:
+
+def seed_database(
+    session: Session,
+    demo_password: str | None = None,
+    demo_qr_token: str = "qr-demo-seoul-001-7f4d0b9e8c2a",
+) -> None:
     now = datetime.now(timezone.utc)
     if not session.scalar(select(func.count()).select_from(Customer)):
         store = Store(id="S001", name="MCM 서울 플래그십", timezone="Asia/Seoul")
         session.add(store)
-        session.add(NfcTag(token="nfc-demo-seoul-001", store_id=store.id, is_active=True))
         session.add_all(Customer(**customer) for customer in CUSTOMERS)
 
         for product_id, name, line, category, colors, material, price, tags, quantity in PRODUCTS:
@@ -70,14 +79,43 @@ def seed_database(session: Session, demo_password: str | None = None) -> None:
                     image_url=f"/assets/products/{product_id.lower()}.jpg",
                 )
             )
-            session.add(
-                Inventory(
-                    store_id=store.id,
-                    product_id=product_id,
-                    quantity=quantity,
-                    updated_at=now,
+
+        # [Backend-01-'PostgreSQL seed 외래키 순서 보장'] 부모 레코드를 참조 레코드보다 먼저 flush한다.
+        session.flush()
+
+    # [Backend-14-'가까운 매장 체크인'] 기존 배포 DB에도 데모 매장 위치를 멱등하게 보강한다.
+    for store_id, name, address, latitude, longitude in DEMO_STORES:
+        store = session.get(Store, store_id)
+        if store is None:
+            store = Store(id=store_id, name=name, timezone="Asia/Seoul")
+            session.add(store)
+        store.name = name
+        store.address = address
+        store.latitude = latitude
+        store.longitude = longitude
+    session.flush()
+
+    for store_id, *_ in DEMO_STORES:
+        for product_id, _, _, _, _, _, _, _, quantity in PRODUCTS:
+            if session.get(Inventory, (store_id, product_id)) is None:
+                session.add(
+                    Inventory(
+                        store_id=store_id,
+                        product_id=product_id,
+                        quantity=quantity,
+                        updated_at=now,
+                    )
                 )
-            )
+    session.flush()
+
+    entry_tags = [
+        (demo_qr_token, EntryChannel.QR),
+        ("nfc-demo-seoul-001", EntryChannel.NFC),
+    ]
+    for token, channel in entry_tags:
+        if session.get(EntryTag, token) is None:
+            session.add(EntryTag(token=token, store_id="S001", channel=channel.value, is_active=True))
+    session.flush()
 
     if demo_password:
         seed_users = [
@@ -94,6 +132,7 @@ def seed_database(session: Session, demo_password: str | None = None) -> None:
             session.add(Staff(id="ST001", store_id="S001", title="Client Advisor", experience_years=4))
         if session.get(Staff, "ST002") is None:
             session.add(Staff(id="ST002", store_id="S001", title="Senior Client Advisor", experience_years=6))
+        session.flush()
 
     wishlist_seed = {"C001": ["P001"], "C002": ["P003"]}
     for customer_id, product_ids in wishlist_seed.items():

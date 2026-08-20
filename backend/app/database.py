@@ -12,11 +12,24 @@ class Base(DeclarativeBase):
     pass
 
 
+def normalize_database_url(url: str) -> str:
+    """Render PostgreSQL URL을 psycopg 3 SQLAlchemy URL로 변환한다."""
+    # [Backend-10-'Render PostgreSQL 연결'] Render의 connectionString은 드라이버명이 없으므로 명시한다.
+    if url.startswith("postgres://"):
+        return f"postgresql+psycopg://{url.removeprefix('postgres://')}"
+    if url.startswith("postgresql://"):
+        return f"postgresql+psycopg://{url.removeprefix('postgresql://')}"
+    return url
+
+
 class Database:
     def __init__(self, url: str) -> None:
+        url = normalize_database_url(url)
         engine_options: dict[str, object] = {}
         if url.startswith("sqlite"):
             engine_options["connect_args"] = {"check_same_thread": False}
+        else:
+            engine_options["pool_pre_ping"] = True
         if url in {"sqlite://", "sqlite:///:memory:", "sqlite+pysqlite:///:memory:"}:
             engine_options["poolclass"] = StaticPool
 

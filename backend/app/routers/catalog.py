@@ -11,7 +11,7 @@ from app.dependencies import AuthenticatedUser, current_customer
 from app.errors import DomainError
 from app.mappers import to_customer, to_product, to_store
 from app.models import Customer, Inventory, Product, Store
-from app.schemas import CustomerResponse, ProductListResponse, ProductResponse, StoreResponse
+from app.schemas import CustomerResponse, ProductListResponse, ProductResponse, StoreListResponse, StoreResponse
 
 
 router = APIRouter(prefix="/api/v1", tags=["catalog"])
@@ -48,6 +48,13 @@ def get_store(store_id: str, db: Session = Depends(get_db)) -> StoreResponse:
     if store is None or not store.is_active:
         raise DomainError(404, "STORE_NOT_FOUND", "매장을 찾을 수 없습니다.")
     return to_store(store)
+
+
+@router.get("/stores", response_model=StoreListResponse)
+def list_stores(db: Session = Depends(get_db)) -> StoreListResponse:
+    # [Backend-14-'가까운 매장 체크인'] 클라이언트가 위치 기준으로 정렬할 수 있도록 좌표를 제공한다.
+    stores = db.scalars(select(Store).where(Store.is_active.is_(True)).order_by(Store.id)).all()
+    return StoreListResponse(items=[to_store(store) for store in stores])
 
 
 @router.get("/products", response_model=ProductListResponse)

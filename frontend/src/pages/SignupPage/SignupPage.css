@@ -1,0 +1,229 @@
+.signup-page {
+  background-color: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.signup-page__body {
+  background-color: #fafaf8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 392.687px;
+  max-width: 100%;
+  position: relative;
+  margin: 0 auto;
+}
+
+.signup-page__app {
+  background-color: #fafaf8;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  min-height: 853.233px;
+  width: 100%;
+  position: relative;
+}
+
+.signup-page__hero {
+  background-color: #1a1714;
+  display: flex;
+  flex-direction: column;
+  height: 239.989px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.signup-page__hero-backdrop {
+  background-color: #2a2520;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 239.989px;
+  width: 100%;
+  position: relative;
+}
+
+.signup-page__hero-image-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  line-height: 16.5px;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 0.88px;
+  white-space: nowrap;
+}
+
+.signup-page__hero-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 10, 0.1),
+    rgba(10, 10, 10, 0.55)
+  );
+  pointer-events: none;
+}
+
+.signup-page__hero-copy {
+  position: absolute;
+  left: 27.98px;
+  top: 154.51px;
+  width: 159.234px;
+}
+
+.signup-page__hero-subtitle {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 13.5px;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1.98px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.signup-page__hero-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-style: italic;
+  font-size: 38px;
+  line-height: 38px;
+  color: #ffffff;
+  letter-spacing: -0.38px;
+  white-space: nowrap;
+  margin: 6px 0 0;
+}
+
+.signup-page__tabs {
+  background-color: #ffffff;
+  border-bottom: 1.112px solid #e8e3dc;
+  display: flex;
+  width: 100%;
+}
+
+.signup-page__tab {
+  flex: 1 0 0;
+  min-width: 0;
+  height: 49.59px;
+  border: none;
+  background: transparent;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 16.5px;
+  letter-spacing: 1.76px;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  padding: 16px 0;
+  text-decoration: none;
+}
+
+.signup-page__tab--active {
+  color: #0a0a0a;
+  border-bottom: 1.112px solid #0a0a0a;
+}
+
+.signup-page__tab--inactive {
+  color: #7a746e;
+  border-bottom: 1.112px solid transparent;
+}
+
+.signup-page__form {
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 36px 28px 40px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.signup-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signup-page__label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 11px;
+  line-height: 15px;
+  color: #7a746e;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.signup-page__input {
+  width: 100%;
+  border: none;
+  border-bottom: 1.112px solid #e8e3dc;
+  padding: 8px 0 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 15px;
+  color: rgba(10, 10, 10, 0.8);
+  background: transparent;
+  outline: none;
+  pointer-events: auto;
+}
+
+.signup-page__input::placeholder {
+  color: rgba(10, 10, 10, 0.5);
+}
+
+.signup-page__error {
+  margin: 0;
+  color: #a33;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.signup-page__notice {
+  margin: -8px 0 0;
+  color: #7a746e;
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.signup-page__submit {
+  width: 100%;
+  height: 49.972px;
+  border: none;
+  background-color: #c4bfb9;
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 18px;
+  letter-spacing: 2.16px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.signup-page__submit:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+@media (max-width: 430px) {
+  .signup-page__body {
+    width: 100%;
+  }
+
+  .signup-page__app {
+    min-height: 100vh;
+    box-shadow: none;
+  }
+}

@@ -8,11 +8,12 @@ from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import current_customer_id
 from app.errors import DomainError
 from app.mappers import to_store
-from app.models import Checkin, Consent, Customer, NfcTag, Recommendation, Staff, StaffAssignment, Store, User
+from app.models import Checkin, Consent, Customer, EntryTag, Recommendation, Staff, StaffAssignment, Store, User
 from app.schemas import (
     CheckinCreateRequest,
     CheckinCreateResponse,
@@ -26,6 +27,7 @@ from app.schemas import (
     ShoppingModeRequest,
     ShoppingModeResponse,
     StaffSummaryResponse,
+    StoreCheckinCreateRequest,
 )
 
 
@@ -100,16 +102,20 @@ def create_checkin(
     if customer is None:
         raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
 
-    tag = db.get(NfcTag, body.tag_token)
+    tag = db.get(EntryTag, body.tag_token)
     if tag is None or not tag.is_active:
-        raise DomainError(400, "INVALID_NFC_TAG", "유효하지 않은 NFC 태그입니다.")
+        raise DomainError(400, "INVALID_ENTRY_TAG", "유효하지 않은 매장 진입 태그입니다.")
     store = db.get(Store, tag.store_id)
     if store is None or not store.is_active:
         raise DomainError(400, "STORE_UNAVAILABLE", "현재 체크인할 수 없는 매장입니다.")
 
+    return create_checkin_for_store(customer, store, db)
+
+
+def create_checkin_for_store(customer: Customer, store: Store, db: Session) -> CheckinCreateResponse:
     existing = db.scalar(
         select(Checkin).where(
-            Checkin.customer_id == customer_id,
+            Checkin.customer_id == customer.id,
             Checkin.store_id == store.id,
             Checkin.status.in_(ACTIVE_STATUSES),
         )
@@ -142,6 +148,38 @@ def create_checkin(
         checked_in_at=checkin.checked_in_at,
         purchase_count=customer.purchase_count,
         interest_count=len(customer.recently_viewed_product_ids),
+    )
+
+
+@router.post("/store", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_store_checkin(
+    body: StoreCheckinCreateRequest,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> CheckinCreateResponse:
+    """매장 목록에서 고객이 직접 선택한 활성 매장에 체크인한다."""
+    # [Backend-14-'가까운 매장 체크인'] QR이 없어도 인증 고객과 활성 매장을 서버에서 검증한다.
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise DomainError(404, "CUSTOMER_NOT_FOUND", "고객을 찾을 수 없습니다.")
+    store = db.get(Store, body.store_id)
+    if store is None or not store.is_active:
+        raise DomainError(404, "STORE_NOT_FOUND", "체크인할 수 있는 매장을 찾을 수 없습니다.")
+    return create_checkin_for_store(customer, store, db)
+
+
+@router.post("/demo", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
+def create_demo_checkin(
+    request: Request,
+    customer_id: CustomerId,
+    db: DbSession,
+) -> CheckinCreateResponse:
+    """홈 버튼 시연을 위해 서버에 설정된 QR 태그로 동일한 체크인 계약을 실행한다."""
+    # [Backend-13-'홈 데모 체크인'] 실제 QR 토큰은 프론트에 하드코딩하지 않고 서버 설정에서만 읽는다.
+    return create_checkin(
+        CheckinCreateRequest(tag_token=request.app.state.demo_qr_token),
+        customer_id,
+        db,
     )
 
 
@@ -281,6 +319,15 @@ def revoke_consent(
         recommendation.output = None
         recommendation.error_code = "CONSENT_REVOKED"
         recommendation.updated_at = now
+    record_audit(
+        db,
+        request,
+        action="CONSENT_REVOKED",
+        resource_type="CHECKIN",
+        actor_id=customer_id,
+        resource_id=checkin.id,
+        metadata={"policy_version": consent.policy_version},
+    )
     db.commit()
 
     response = ConsentRevocationResponse(

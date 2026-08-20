@@ -1,0 +1,17 @@
+.visit-info-complete-page { width: 100%; background: #fafaf8; }
+.visit-info-complete-page__body { width: 392.687px; background: #fafaf8; }
+.visit-info-complete-page__app { width: 100%; min-height: 853.233px; background: #fafaf8; box-shadow: 0 0 30px rgba(0, 0, 0, 0.12); }
+.visit-info-complete-page__screen { display: flex; min-height: 853.233px; flex-direction: column; align-items: center; box-sizing: border-box; padding: 72px 28px 48px; }
+.visit-info-complete-page__eyebrow { margin: 0 0 36px; color: #c9a882; font: 500 9px/13.5px 'DM Sans', sans-serif; letter-spacing: 1.98px; text-transform: uppercase; }
+.visit-info-complete-page__icon { display: flex; width: 64px; height: 64px; align-items: center; justify-content: center; margin-bottom: 28px; border-radius: 50%; background: #0a0a0a; color: #c9a882; font: 400 24px/1 'DM Sans', sans-serif; }
+.visit-info-complete-page__title { margin-bottom: 16px; color: #0a0a0a; text-align: center; font: italic 300 30px/36px 'Fraunces', serif; }
+.visit-info-complete-page__title p { margin: 0; }
+.visit-info-complete-page__description { margin: 0 0 36px; color: #7a746e; text-align: center; font: 300 13px/21px 'DM Sans', sans-serif; }
+.visit-info-complete-page__status-card { display: flex; width: 100%; flex-direction: column; box-sizing: border-box; margin-bottom: 40px; padding: 8px 20px; border: 1px solid #e8e3dc; background: #fff; }
+.visit-info-complete-page__status-card div { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #f0ece7; }
+.visit-info-complete-page__status-card div:last-child { border-bottom: 0; }
+.visit-info-complete-page__status-card span,
+.visit-info-complete-page__status-card strong { font-family: 'DM Sans', sans-serif; font-size: 12px; line-height: 18px; }
+.visit-info-complete-page__status-card span { color: #7a746e; font-weight: 300; }
+.visit-info-complete-page__status-card strong { color: #0a0a0a; font-weight: 500; }
+.visit-info-complete-page__button { width: 100%; border: 0; padding: 16px 0; background: #0a0a0a; color: #fff; cursor: pointer; font: 500 12px/18px 'DM Sans', sans-serif; letter-spacing: 2.16px; text-transform: uppercase; }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -13,6 +13,7 @@ class Customer(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str | None] = mapped_column(String(20), unique=True, index=True, nullable=True)
     membership: Mapped[str] = mapped_column(String(30), default="일반")
     visit_count: Mapped[int] = mapped_column(Integer, default=0)
     preferred_colors: Mapped[list[str]] = mapped_column(JSON, default=list)
@@ -25,6 +26,7 @@ class Customer(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (CheckConstraint("role IN ('CUSTOMER', 'STAFF')", name="ck_users_role"),)
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -72,6 +74,9 @@ class Store(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
     name: Mapped[str] = mapped_column(String(120))
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(nullable=True)
+    longitude: Mapped[float | None] = mapped_column(nullable=True)
     timezone: Mapped[str] = mapped_column(String(50), default="Asia/Seoul")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -93,6 +98,7 @@ class Product(Base):
 
 class Inventory(Base):
     __tablename__ = "inventories"
+    __table_args__ = (CheckConstraint("quantity >= 0", name="ck_inventories_quantity_nonnegative"),)
 
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), primary_key=True)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), primary_key=True)
@@ -100,16 +106,28 @@ class Inventory(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
-class NfcTag(Base):
-    __tablename__ = "nfc_tags"
+class EntryTag(Base):
+    __tablename__ = "entry_tags"
+    __table_args__ = (CheckConstraint("channel IN ('QR', 'NFC')", name="ck_entry_tags_channel"),)
 
     token: Mapped[str] = mapped_column(String(255), primary_key=True)
     store_id: Mapped[str] = mapped_column(ForeignKey("stores.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(20), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
 class Checkin(Base):
     __tablename__ = "checkins"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('CHECKED_IN', 'SELF_SHOPPING', 'WAITING_FOR_STAFF', 'ASSIGNED', 'SERVING', 'CANCELLED', 'COMPLETED')",
+            name="ck_checkins_status",
+        ),
+        CheckConstraint(
+            "shopping_mode IS NULL OR shopping_mode IN ('PRIVATE', 'STAFF_ASSISTED')",
+            name="ck_checkins_shopping_mode",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
@@ -147,6 +165,13 @@ class StaffAssignment(Base):
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
+    __table_args__ = (
+        CheckConstraint("type IN ('LOOKBOOK', 'STAFF_GUIDE')", name="ck_recommendations_type"),
+        CheckConstraint(
+            "status IN ('READY', 'FALLBACK', 'FAILED', 'REVOKED')",
+            name="ck_recommendations_status",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     checkin_id: Mapped[str] = mapped_column(ForeignKey("checkins.id"), index=True)
@@ -177,3 +202,16 @@ class PurchaseHistory(Base):
     category_snapshot: Mapped[str] = mapped_column(String(80))
     price_snapshot: Mapped[int] = mapped_column(Integer)
     purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    actor_id: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    resource_type: Mapped[str] = mapped_column(String(80), index=True)
+    resource_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String(80), nullable=True, index=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
