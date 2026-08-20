@@ -18,17 +18,22 @@ export function saveLookbook(checkinId, lookbook) {
 }
 
 export function getLookbook(checkinId) {
-  const stored = readJson(LOOKBOOK_KEY);
-  if (
-    stored?.checkin_id !== checkinId
-    || !stored.data
-    || !Array.isArray(stored.data.looks)
-    || stored.data.looks.length === 0
-  ) {
-    if (stored) window.sessionStorage.removeItem(LOOKBOOK_KEY);
+  try {
+    const stored = readJson(LOOKBOOK_KEY);
+    if (!stored || typeof stored !== 'object') return null;
+    if (stored.checkin_id !== checkinId) {
+      window.sessionStorage.removeItem(LOOKBOOK_KEY);
+      return null;
+    }
+    if (!stored.data || !Array.isArray(stored.data?.looks) || stored.data.looks.length === 0) {
+      window.sessionStorage.removeItem(LOOKBOOK_KEY);
+      return null;
+    }
+    return stored.data;
+  } catch {
+    window.sessionStorage.removeItem(LOOKBOOK_KEY);
     return null;
   }
-  return stored.data;
 }
 
 export function saveSelectedLook(look) {
