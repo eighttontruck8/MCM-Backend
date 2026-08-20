@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clearAuth, createOrResumeCheckin, login } from '../../api/client';
 import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
+import brandImage from '../../assets/brand.png';
 import './LoginPage.css';
 
 export default function LoginPage() {
@@ -63,11 +64,7 @@ export default function LoginPage() {
           <section className="login-page__hero" data-node-id="17:11" data-name="AuthScreen">
             <div className="login-page__hero-backdrop" data-node-id="17:12" data-name="Container">
               <div className="login-page__hero-image" data-node-id="17:13" data-name="ImgPlaceholder">
-                <div className="login-page__hero-text" data-node-id="17:14" data-name="Text">
-                  <p className="login-page__hero-image-label" data-node-id="17:15">
-                    브랜드 이미지
-                  </p>
-                </div>
+                <img src={brandImage} alt="MCM Brand" className="login-page__hero-img" />
               </div>
               <div className="login-page__hero-gradient" data-node-id="17:16" data-name="Container" />
               <div className="login-page__hero-copy" data-node-id="17:17" data-name="Container">

@@ -5,7 +5,6 @@ import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
 import { mockProducts } from '../../mock/mockProducts';
-import brandImage from '../../assets/brand.png';
 import './MainRecommendPage.css';
 
 // product_id → 로컬 이미지 매핑
@@ -58,10 +57,6 @@ export default function MainRecommendPage() {
 
   return (
     <PageLayout navActive="home" eyebrow={`안녕하세요, ${customer?.name ?? '고객'}님`} title="오늘의 맞춤 추천" headerRight={checkinButton}>
-      <div className="main-recommend-page__brand-banner">
-        <img src={brandImage} alt="MCM Brand" className="main-recommend-page__brand-image" />
-      </div>
-
       <div className="main-recommend-page__context-banner">
         <div className="main-recommend-page__context-icon">✦</div>
         <div className="main-recommend-page__context-text">
