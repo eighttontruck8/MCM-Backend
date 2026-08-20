@@ -193,6 +193,19 @@
   padding: 44px 0 72px;
 }
 
+/* [Frontend-Staff-05-'웨이팅 화면 가독성'] /staff/waiting의 공통 헤더 글자를 5px 확대한다. */
+.staff-shell--waiting .staff-shell__brand strong { font-size: 21px; }
+.staff-shell--waiting .staff-shell__brand small { font-size: 16px; }
+.staff-shell--waiting .staff-shell__identity-copy strong { font-size: 19px; }
+.staff-shell--waiting .staff-shell__identity-copy span { font-size: 16px; }
+.staff-shell--waiting .staff-shell__nav-button { font-size: 23px; }
+.staff-shell--waiting .staff-shell__nav-button b { font-size: 16px; }
+.staff-shell--waiting .staff-shell__popover-eyebrow { font-size: 16px; }
+.staff-shell--waiting .staff-shell__popover strong { font-size: 22px; }
+.staff-shell--waiting .staff-shell__popover > span { font-size: 17px; }
+.staff-shell--waiting .staff-shell__setting-row { font-size: 18px; }
+.staff-shell--waiting .staff-shell__setting-help { font-size: 16px; }
+
 @media (max-width: 720px) {
   .staff-shell__header { align-items: flex-start; padding: 12px 16px; }
   .staff-shell__brand small,

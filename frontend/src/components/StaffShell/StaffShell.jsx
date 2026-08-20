@@ -34,7 +34,7 @@ export default function StaffShell({ children, active = 'dashboard', connectionS
   };
 
   return (
-    <div className="staff-shell">
+    <div className={`staff-shell staff-shell--${active}`}>
       <header className="staff-shell__header">
         <button type="button" className="staff-shell__brand" onClick={() => navigate('/staff')}>
           <span className="staff-shell__brand-mark">M</span>
