@@ -201,37 +201,29 @@
   color: #ffffff;
 }
 
-/* 직원 메모 입력 - label과 textarea 바짝 붙임 */
+/* 직원 메모 입력 */
 .visit-info-page__input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
   width: 100%;
-}
-
-.visit-info-page__input-label {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 300;
-  font-size: 13px;
-  line-height: normal;
-  color: rgba(10, 10, 10, 0.5);
-  margin: 0;
+  margin-top: 12px;
 }
 
 .visit-info-page__text-input {
   width: 100%;
-  border-bottom: 1.112px solid #e8e3dc;
-  padding: 6px 0 8px;
+  border: 1.112px solid #e8e3dc;
+  padding: 12px;
   box-sizing: border-box;
-  border-top: 0;
-  border-right: 0;
-  border-left: 0;
   border-radius: 0;
-  background: transparent;
+  background: #ffffff;
   resize: vertical;
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   color: #0a0a0a;
+}
+
+.visit-info-page__text-input::placeholder {
+  color: rgba(10, 10, 10, 0.4);
 }
 
 /* 버튼 영역 */

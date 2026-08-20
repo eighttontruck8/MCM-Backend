@@ -22,7 +22,7 @@ export default function VisitInfoPage() {
   const navigate = useNavigate();
   // [Frontend-14-'맞춤 서비스 동의'] 이전 화면에서 명시적으로 수락한 동의를 방문 정보 제출에 이어서 사용한다.
   const [isAgreed, setIsAgreed] = useState(true);
-  const [selectedPurpose, setSelectedPurpose] = useState('FREE_SHOPPING');
+  const [selectedPurpose, setSelectedPurpose] = useState(null);
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -116,13 +116,12 @@ export default function VisitInfoPage() {
             ))}
           </div>
           <div className="visit-info-page__input-group">
-            <p className="visit-info-page__input-label">직원에게 전할 내용을 입력해주세요.</p>
             <textarea
               className="visit-info-page__text-input"
               value={note}
               maxLength={500}
-              rows={2}
-              placeholder=""
+              rows={3}
+              placeholder="(선택) 직원에게 전할 내용을 입력해주세요."
               onChange={(event) => setNote(event.target.value)}
             />
           </div>
