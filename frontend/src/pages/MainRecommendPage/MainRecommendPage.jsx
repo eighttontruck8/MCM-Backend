@@ -82,7 +82,7 @@ export default function MainRecommendPage() {
                   <div className="brand">{product.line}</div>
                   <div className="name">{product.name}</div>
                   <div className="price">{product.price.toLocaleString()}원</div>
-                  <div className="ai-desc">{product.tags[0] ?? product.category}</div>
+                  <div className="ai-desc">#{product.tags[0] ?? product.category}</div>
                   <button type="button" className="recommend-favorite" disabled={wishlist.pendingProductId === product.product_id} onClick={() => wishlist.toggle(product)}>
                     {wishlist.isLiked(product.product_id) ? '♥ 찜 해제' : '♡ 찜하기'}
                   </button>

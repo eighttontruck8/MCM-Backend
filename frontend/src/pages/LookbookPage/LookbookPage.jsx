@@ -10,6 +10,7 @@ import lookbookFallback from '../../mock/customerLookbookMock.json';
 import './LookbookPage.css';
 
 const LOCAL_IMAGE_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id, p.image_url]));
+const LOCAL_CATEGORY_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id, p.category]));
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
 export default function LookbookPage() {
@@ -35,7 +36,7 @@ export default function LookbookPage() {
             const response = await createLookbook(checkin.checkin_id);
             if (Array.isArray(response?.looks) && response.looks.length > 0) {
               // 로컬 이미지 매핑 적용
-              const mapped = { ...response, looks: response.looks.map((l) => ({ ...l, image_url: LOCAL_IMAGE_MAP[l.product_id] || l.image_url })) };
+              const mapped = { ...response, looks: response.looks.map((l) => ({ ...l, image_url: LOCAL_IMAGE_MAP[l.product_id] || l.image_url, category: l.category || LOCAL_CATEGORY_MAP[l.product_id] || '추천' })) };
               saveLookbook(checkin.checkin_id, mapped);
               setLookbook(mapped);
               return;
@@ -52,6 +53,7 @@ export default function LookbookPage() {
         const catalogLooks = (Array.isArray(catalog?.items) ? catalog.items : []).slice(0, 6).map((product) => ({
           product_id: product.product_id,
           product: product.name,
+          category: product.category,
           styling: product.tags?.slice(0, 2).join(' · ') || product.category,
           image_url: LOCAL_IMAGE_MAP[product.product_id] || product.image_url,
           price: product.price,
@@ -109,8 +111,8 @@ export default function LookbookPage() {
                     <button type="button" key={item.product_id} className="lookbook-card lookbook-card--set-item" onClick={() => openLook(item)}>
                       <ProductImage className="lookbook-card__image" src={item.image_url} alt={item.product} />
                       <div className="lookbook-card__meta">
+                        <div className="lookbook-card__tag">#{item.category}</div>
                         <div className="lookbook-card__title">{item.product}</div>
-                        <div className="lookbook-card__subtitle">{item.category} · {item.price?.toLocaleString()}원</div>
                       </div>
                     </button>
                   ))}
@@ -120,11 +122,11 @@ export default function LookbookPage() {
           }
           // 단일 아이템 구조 (API 응답 호환)
           return (
-            <button type="button" key={look.product_id} className={`lookbook-card lookbook-card--${index % 3 === 0 ? 'full' : index % 3 === 1 ? 'half-left' : 'half-right'}`} onClick={() => openLook(look)}>
+            <button type="button" key={look.product_id || index} className={`lookbook-card ${index === 0 ? 'lookbook-card--full' : ''}`} onClick={() => openLook(look)}>
               <ProductImage className="lookbook-card__image" src={look.image_url} alt={look.product} />
               <div className="lookbook-card__meta">
+                <div className="lookbook-card__tag">#{look.category || '추천'}</div>
                 <div className="lookbook-card__title">{look.product}</div>
-                <div className="lookbook-card__subtitle">{look.styling}</div>
               </div>
             </button>
           );
