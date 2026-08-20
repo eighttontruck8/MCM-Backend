@@ -125,6 +125,12 @@
   overflow-y: hidden;
   box-sizing: border-box;
   width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.product-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .product-card {
