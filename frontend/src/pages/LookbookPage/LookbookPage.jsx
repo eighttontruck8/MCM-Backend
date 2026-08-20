@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createLookbook, fetchProducts } from '../../api/client';
-import AppBottomNav from '../../components/AppBottomNav/AppBottomNav';
+import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { getCheckin } from '../../utils/checkinSession';
 import { getLookbook, saveLookbook, saveSelectedLook } from '../../utils/lookbookSession';
@@ -18,7 +18,6 @@ export default function LookbookPage() {
   const looks = Array.isArray(lookbook?.looks) ? lookbook.looks : [];
 
   useEffect(() => {
-    // [Frontend-11-'빈 룩북 복구'] 저장값이나 AI 응답에 상품이 없으면 매장 카탈로그로 페이지를 복구한다.
     if (lookbook) return undefined;
     const timer = window.setTimeout(async () => {
       try {
@@ -70,46 +69,33 @@ export default function LookbookPage() {
   };
 
   return (
-    <div className="lookbook-page">
-      <div className="lookbook-page__container">
-        <header className="lookbook-header">
-          <div className="lookbook-header__brand">M-Journey</div>
-          <button type="button" className="lookbook-header__checkin">체크인</button>
-        </header>
-        <main className="lookbook-content">
-          <section className="lookbook-intro">
-            <div className="lookbook-intro__eyebrow">MY LOOKBOOK</div>
-            <h1 className="lookbook-intro__title">{lookbook?.title ?? 'AI 큐레이션 룩북'}</h1>
-            {lookbook?.intro && <p className="lookbook-intro__copy">{lookbook.intro}</p>}
-          </section>
-          {isLoading && <p className="lookbook-state">재고를 확인하고 맞춤 룩북을 만들고 있습니다.</p>}
-          {noticeMessage && <p className="lookbook-state lookbook-state--notice">{noticeMessage}</p>}
-          {errorMessage && (
-            <section className="lookbook-empty" role="status">
-              <p className="lookbook-state lookbook-state--error">{errorMessage}</p>
-              <button type="button" className="lookbook-empty__button" onClick={() => navigate('/main')}>홈으로 돌아가기</button>
-            </section>
-          )}
-          {!isLoading && !errorMessage && looks.length === 0 && (
-            <section className="lookbook-empty" role="status">
-              <p className="lookbook-state">현재 표시할 수 있는 룩북 상품이 없습니다.</p>
-              <button type="button" className="lookbook-empty__button" onClick={() => navigate('/all-recommend')}>전체 추천 상품 보기</button>
-            </section>
-          )}
-          <section className="lookbook-grid">
-            {looks.map((look, index) => (
-              <button type="button" key={look.product_id} className={`lookbook-card lookbook-card--${index % 3 === 0 ? 'full' : index % 3 === 1 ? 'half-left' : 'half-right'}`} onClick={() => openLook(look)}>
-                <ProductImage className="lookbook-card__image" src={look.image_url} alt={look.product} />
-                <div className="lookbook-card__meta">
-                  <div className="lookbook-card__title">{look.product}</div>
-                  <div className="lookbook-card__subtitle">{look.styling}</div>
-                </div>
-              </button>
-            ))}
-          </section>
-        </main>
-        <AppBottomNav active="lookbook" />
-      </div>
-    </div>
+    <PageLayout navActive="lookbook" eyebrow="MY LOOKBOOK" title={lookbook?.title ?? 'AI 큐레이션 룩북'}>
+      {lookbook?.intro && <p className="lookbook-intro__copy">{lookbook.intro}</p>}
+      {isLoading && <p className="lookbook-state">재고를 확인하고 맞춤 룩북을 만들고 있습니다.</p>}
+      {noticeMessage && <p className="lookbook-state lookbook-state--notice">{noticeMessage}</p>}
+      {errorMessage && (
+        <section className="lookbook-empty" role="status">
+          <p className="lookbook-state lookbook-state--error">{errorMessage}</p>
+          <button type="button" className="lookbook-empty__button" onClick={() => navigate('/main')}>홈으로 돌아가기</button>
+        </section>
+      )}
+      {!isLoading && !errorMessage && looks.length === 0 && (
+        <section className="lookbook-empty" role="status">
+          <p className="lookbook-state">현재 표시할 수 있는 룩북 상품이 없습니다.</p>
+          <button type="button" className="lookbook-empty__button" onClick={() => navigate('/all-recommend')}>전체 추천 상품 보기</button>
+        </section>
+      )}
+      <section className="lookbook-grid">
+        {looks.map((look, index) => (
+          <button type="button" key={look.product_id} className={`lookbook-card lookbook-card--${index % 3 === 0 ? 'full' : index % 3 === 1 ? 'half-left' : 'half-right'}`} onClick={() => openLook(look)}>
+            <ProductImage className="lookbook-card__image" src={look.image_url} alt={look.product} />
+            <div className="lookbook-card__meta">
+              <div className="lookbook-card__title">{look.product}</div>
+              <div className="lookbook-card__subtitle">{look.styling}</div>
+            </div>
+          </button>
+        ))}
+      </section>
+    </PageLayout>
   );
 }
