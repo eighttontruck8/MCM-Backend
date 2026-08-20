@@ -1,147 +1,152 @@
+/* [Frontend-StaffAssignment-'화이트 골드 매칭 완료 화면'] */
 .staff-assignment-page {
-  background-color: #fafaf8;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  position: relative;
   width: 100%;
+  min-height: 100vh;
+  align-items: flex-start;
+  justify-content: center;
+  background-color: #fafaf8;
 }
 
 .staff-assignment-page__body {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
   background-color: #fafaf8;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 392.687px;
-  position: relative;
 }
 
 .staff-assignment-page__app {
-  background-color: #fafaf8;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-  min-height: 853.233px;
   width: 100%;
-  position: relative;
+  min-height: 100vh;
+  background-color: #fafaf8;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
 }
 
 .staff-assignment-page__screen {
-  background-color: #0a0a0a;
-  overflow: hidden;
   position: relative;
+  display: flex;
   width: 100%;
-  min-height: 853.233px;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 136px 32px 48px;
+  background-color: #fafaf8;
 }
 
 .staff-assignment-page__background {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 70%, rgba(201, 168, 130, 0.07) 0%, rgba(201, 168, 130, 0) 60%);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(201, 168, 130, 0.13) 0%, rgba(201, 168, 130, 0) 33%),
+    linear-gradient(180deg, #fff 0%, #fafaf8 42%);
+  pointer-events: none;
+}
+
+.staff-assignment-page__avatar,
+.staff-assignment-page__heading,
+.staff-assignment-page__info-card,
+.staff-assignment-page__button {
+  position: relative;
+  z-index: 1;
 }
 
 .staff-assignment-page__avatar {
-  position: absolute;
-  left: 156.34px;
-  top: 170.09px;
+  display: flex;
   width: 80px;
   height: 80px;
-  background-color: #1e1a16;
-  border: 1.112px solid #c9a882;
-  border-radius: 40px;
-  display: flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
+  margin-bottom: 32px;
+  border: 1px solid #c9a882;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 10px 28px rgba(115, 89, 61, 0.1);
 }
 
 .staff-assignment-page__avatar-text {
-  font-family: 'Fraunces', serif;
-  font-weight: 300;
+  color: #b58d61;
+  font-size: 30px;
   font-style: italic;
-  font-size: 28px;
-  line-height: 42px;
-  color: #c9a882;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.staff-assignment-page__avatar-text p {
+  margin: 0;
 }
 
 .staff-assignment-page__status-dot {
   position: absolute;
-  left: 61.78px;
-  top: 61.78px;
+  right: 2px;
+  bottom: 3px;
   width: 14px;
   height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
   background-color: #4a9a5a;
-  border: 1.112px solid #0a0a0a;
-  border-radius: 7px;
 }
 
 .staff-assignment-page__heading {
-  position: absolute;
-  left: 115.83px;
-  top: 281.98px;
-  width: 161px;
   display: flex;
+  width: 100%;
   flex-direction: column;
   align-items: center;
   gap: 12px;
 }
 
 .staff-assignment-page__subtitle {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  line-height: 13.5px;
-  color: #c9a882;
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
-  text-align: center;
   margin: 0;
+  color: #b58d61;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1.8px;
+  line-height: 17px;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .staff-assignment-page__name {
-  font-family: 'Fraunces', serif;
-  font-weight: 300;
-  font-style: italic;
-  font-size: 32px;
-  line-height: 36.8px;
-  color: #ffffff;
-  text-align: center;
   margin: 0;
+  color: #0a0a0a;
+  font-size: 34px;
+  font-style: italic;
+  font-weight: 300;
+  line-height: 41px;
+  text-align: center;
 }
 
 .staff-assignment-page__role {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 300;
-  font-size: 13px;
-  line-height: 19.5px;
-  color: rgba(255, 255, 255, 0.45);
-  text-align: center;
-  letter-spacing: 0.78px;
   margin: 0;
+  color: #7a746e;
+  font-size: 15px;
+  font-weight: 300;
+  letter-spacing: 0.78px;
+  line-height: 22px;
+  text-align: center;
 }
 
 .staff-assignment-page__info-card {
-  position: absolute;
-  left: 31.84px;
-  top: 405.75px;
-  width: 329px;
-  padding: 20px 24px;
-  background-color: rgba(255, 255, 255, 0.04);
-  border: 1.112px solid rgba(201, 168, 130, 0.2);
-  box-sizing: border-box;
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 16px;
+  margin-top: 44px;
+  padding: 22px 24px;
+  border: 1px solid #e8e3dc;
+  background-color: #fff;
+  box-shadow: 0 12px 30px rgba(65, 50, 37, 0.05);
 }
 
 .staff-assignment-page__info-title {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  font-size: 11px;
-  line-height: 13.5px;
-  color: #c9a882;
-  text-transform: uppercase;
-  letter-spacing: 1.62px;
   margin: 0;
+  color: #b58d61;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 1.62px;
+  line-height: 17px;
+  text-transform: uppercase;
 }
 
 .staff-assignment-page__info-row {
@@ -151,65 +156,82 @@
 }
 
 .staff-assignment-page__info-bullet {
-  font-family: 'DM Sans', sans-serif;
+  flex: 0 0 auto;
+  color: #b58d61;
+  font-size: 13px;
   font-weight: 400;
-  font-size: 11px;
-  line-height: 15px;
-  color: #c9a882;
+  line-height: 17px;
 }
 
 .staff-assignment-page__info-text {
-  font-family: 'DM Sans', sans-serif;
+  color: #3f3a35;
+  font-size: 14px;
   font-weight: 300;
-  font-size: 12px;
-  line-height: 18px;
-  color: rgba(255, 255, 255, 0.7);
+  line-height: 20px;
 }
 
 .staff-assignment-page__visit-note {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-top: 1.112px solid rgba(255, 255, 255, 0.08);
-  padding-top: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #f0ece7;
 }
 
 .staff-assignment-page__visit-dot {
   width: 6px;
   height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
   background-color: #4a9a5a;
-  border-radius: 3px;
 }
 
 .staff-assignment-page__visit-text {
-  font-family: 'DM Sans', sans-serif;
+  color: #7a746e;
+  font-size: 14px;
   font-weight: 300;
-  font-size: 12px;
-  line-height: 18px;
-  color: rgba(255, 255, 255, 0.55);
+  line-height: 20px;
 }
 
 .staff-assignment-page__button {
-  position: absolute;
-  left: 31.84px;
-  top: 632.87px;
-  width: 329px;
-  height: 50px;
   display: flex;
+  width: 100%;
+  min-height: 52px;
   align-items: center;
   justify-content: center;
-  background-color: #c9a882;
-  text-decoration: none;
-  cursor: pointer;
+  margin-top: 32px;
   border: 0;
+  background-color: #0a0a0a;
+  color: #fff;
+  cursor: pointer;
 }
 
 .staff-assignment-page__button-text {
-  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
   font-weight: 500;
-  font-size: 11px;
-  line-height: 16.5px;
-  color: #0a0a0a;
   letter-spacing: 2.2px;
+  line-height: 19px;
   text-transform: uppercase;
+}
+
+.staff-assignment-page__button:hover {
+  background-color: #2a2520;
+}
+
+.staff-assignment-page__button:focus-visible {
+  outline: 2px solid #c9a882;
+  outline-offset: 3px;
+}
+
+@media (max-width: 430px) {
+  .staff-assignment-page__screen {
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+}
+
+@media (max-height: 760px) {
+  .staff-assignment-page__screen {
+    padding-top: 72px;
+  }
 }
