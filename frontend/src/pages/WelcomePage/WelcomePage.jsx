@@ -10,7 +10,7 @@ export default function WelcomePage() {
 
   return (
     <div className="welcome-page">
-      <div className="welcome-page__container">
+      <div className="welcome-page__container welcome-page__fade-in">
         <header className="welcome-page__header">
           <div className="welcome-page__brand">M·Journey</div>
         </header>
@@ -18,7 +18,7 @@ export default function WelcomePage() {
         <main className="welcome-page__body">
           <div className="welcome-page__icon">✦</div>
           <h1 className="welcome-page__title">
-            당신만을 위한<br />맞춤 쇼핑이 시작됩니다
+            오직, 고객님만을 위한<br />맞춤 쇼핑이 시작됩니다
           </h1>
           <p className="welcome-page__description">
             온라인에서 분석한 취향 정보를 바탕으로<br />
@@ -40,6 +40,9 @@ export default function WelcomePage() {
           >
             로그인하고 시작하기
           </button>
+          <p className="welcome-page__consent-notice">
+            시작하기를 누르면 서비스 이용약관 및<br />개인정보 수집·활용에 동의하는 것으로 간주됩니다.
+          </p>
           <p className="welcome-page__footer-note">
             계정이 없으신가요? 로그인 화면에서 바로 가입하실 수 있습니다.
           </p>
