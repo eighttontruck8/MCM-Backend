@@ -12,11 +12,13 @@ from app.audit import record_audit
 from app.database import get_db
 from app.dependencies import AuthenticatedUser, current_staff
 from app.errors import DomainError
-from app.models import Checkin, Consent, Customer, Staff, StaffAssignment, User
+from app.models import Checkin, Consent, Customer, Product, PurchaseHistory, Staff, StaffAssignment, User
 from app.schemas import (
     CheckinStatus,
     StaffAssignmentResponse,
     StaffCustomerResponse,
+    StaffProductResponse,
+    StaffPurchaseResponse,
     StaffStatusRequest,
     StaffSummaryResponse,
     StaffVisitListResponse,
@@ -195,6 +197,49 @@ def get_customer(customer_id: str, authenticated: CurrentStaff, db: DbSession) -
     checkin, customer, consent = row
     style_allowed = "STYLE_PROFILE" in consent.scopes
     purchase_allowed = "PURCHASE_HISTORY" in consent.scopes
+    recently_viewed_products = None
+    liked_products = None
+    purchases = None
+    if style_allowed:
+        product_ids = list(dict.fromkeys([*customer.recently_viewed_product_ids, *customer.liked_product_ids]))
+        products = db.scalars(select(Product).where(Product.id.in_(product_ids), Product.is_active.is_(True))).all() if product_ids else []
+        product_by_id = {product.id: product for product in products}
+
+        def product_response(product_id: str) -> StaffProductResponse | None:
+            product = product_by_id.get(product_id)
+            if product is None:
+                return None
+            return StaffProductResponse(
+                product_id=product.id,
+                name=product.name,
+                category=product.category,
+                price=product.price,
+                image_url=product.image_url,
+            )
+
+        recently_viewed_products = [item for product_id in customer.recently_viewed_product_ids if (item := product_response(product_id))]
+        liked_products = [item for product_id in customer.liked_product_ids if (item := product_response(product_id))]
+    if purchase_allowed:
+        purchase_rows = db.execute(
+            select(PurchaseHistory, Product)
+            .join(Product, Product.id == PurchaseHistory.product_id)
+            .where(PurchaseHistory.customer_id == customer.id, Product.is_active.is_(True))
+            .order_by(PurchaseHistory.purchased_at.desc())
+            .limit(12)
+        ).all()
+        purchases = [
+            StaffPurchaseResponse(
+                purchase_id=purchase.id,
+                product_id=product.id,
+                name=product.name,
+                category=purchase.category_snapshot,
+                price=purchase.price_snapshot,
+                image_url=product.image_url,
+                channel=purchase.channel,
+                purchased_at=purchase.purchased_at,
+            )
+            for purchase, product in purchase_rows
+        ]
     return StaffCustomerResponse(
         customer_id=customer.id,
         masked_name=mask_name(customer.name),
@@ -206,4 +251,7 @@ def get_customer(customer_id: str, authenticated: CurrentStaff, db: DbSession) -
         recently_viewed_product_ids=customer.recently_viewed_product_ids if style_allowed else None,
         liked_product_ids=customer.liked_product_ids if style_allowed else None,
         purchase_count=customer.purchase_count if purchase_allowed else None,
+        recently_viewed_products=recently_viewed_products,
+        liked_products=liked_products,
+        purchases=purchases,
     )

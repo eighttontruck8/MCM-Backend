@@ -15,3 +15,7 @@ export function getStaffActiveVisit() {
     return null;
   }
 }
+
+export function clearStaffActiveVisit() {
+  window.sessionStorage.removeItem(ACTIVE_VISIT_KEY);
+}

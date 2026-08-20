@@ -160,7 +160,7 @@ uv run python -m pytest
 
 고객은 `POST /api/v1/auth/signup`으로 이름, 연락처, 이메일, 4자 이상의 비밀번호를 제출해 가입할 수 있다. 가입 시 고객 프로필과 인증 계정을 한 트랜잭션으로 생성하고 Access/Refresh Token을 반환한다. 이메일과 연락처는 중복 가입할 수 없다.
 
-직원은 로그인 화면의 `직원용 로그인`에서 진입한다. `POST /api/v1/auth/staff/signup`은 이름, 이메일, 4자 이상의 비밀번호, 매장 코드와 4자 이상의 직원 가입 코드를 검증한 뒤 `STAFF` 계정을 생성한다. 직원 가입 기능을 사용하려면 API 환경변수 `M_JOURNEY_STAFF_SIGNUP_CODE`를 설정해야 하며, 이 값은 프론트 코드나 저장소에 기록하지 않는다. 가입 완료 후 직원 로그인 화면으로 이동하며, 로그인 성공 후 소속 매장의 대기열 화면으로 이동한다.
+직원은 로그인 화면의 `직원용 로그인`에서 진입한다. `POST /api/v1/auth/staff/signup`은 이름, 이메일, 4자 이상의 비밀번호, 매장 코드와 4자 이상의 직원 가입 코드를 검증한 뒤 `STAFF` 계정을 생성한다. 직원 가입 기능을 사용하려면 API 환경변수 `M_JOURNEY_STAFF_SIGNUP_CODE`를 설정해야 하며, 이 값은 프론트 코드나 저장소에 기록하지 않는다. 가입 완료 후 직원 로그인 화면으로 이동하며, 로그인 성공 후 `/staff` 직원 홈으로 이동한다. 웨이팅 아이콘으로 `/staff/waiting`에 진입하고 고객 수락 후에는 다시 `/staff`에서 동의된 AI 취향 정보와 채널별 구매 내역을 확인한다.
 
 Seed 계정:
 
@@ -218,7 +218,7 @@ Authorization: Bearer <access_token>
 - `GET /api/v1/staff/stores/S001/visits?status=WAITING_FOR_STAFF`: 대기열 동기화
 - `POST /api/v1/staff/check-ins/{checkin_id}/claim`: 방문 수락
 - `PATCH /api/v1/staff/check-ins/{checkin_id}/status`: `SERVING`, `COMPLETED` 상태 변경
-- `GET /api/v1/staff/customers/{customer_id}`: 활성 방문과 동의 범위 내 마스킹 프로필 조회
+- `GET /api/v1/staff/customers/{customer_id}`: 활성 방문과 동의 범위 내 마스킹 프로필, 상품 이미지, `ONLINE`/`OFFLINE` 구매 이력 조회
 
 직원은 JWT에서 확인된 소속 매장의 방문만 조회·수락할 수 있다. 두 직원이 같은 방문을 수락하면 한 요청만 성공한다.
 
@@ -268,7 +268,7 @@ Access Token을 `token` 쿼리 파라미터로 전달해 연결한다.
 - `GET /api/v1/customers/me/wishlist`: 찜 목록
 - `POST /api/v1/customers/me/wishlist/{product_id}`: 찜 추가
 - `DELETE /api/v1/customers/me/wishlist/{product_id}`: 찜 삭제
-- `GET /api/v1/customers/me/purchases`: 구매 당시 가격·카테고리 기준 구매 이력
+- `GET /api/v1/customers/me/purchases`: 구매 당시 가격·카테고리와 `ONLINE`/`OFFLINE` 채널 기준 구매 이력
 
 목록 응답은 공통 계약인 `{ "items": [...], "next_cursor": null }` 형식을 사용한다. 찜 추가는 같은 상품을 반복 요청해도 중복 레코드를 만들지 않는다.
 

@@ -44,6 +44,11 @@ class EntryChannel(StrEnum):
     NFC = "NFC"
 
 
+class PurchaseChannel(StrEnum):
+    ONLINE = "ONLINE"
+    OFFLINE = "OFFLINE"
+
+
 class LoginRequest(ApiModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=4, max_length=200)
@@ -188,6 +193,7 @@ class PurchaseResponse(ApiModel):
     category: str
     price: int
     image_url: str
+    channel: PurchaseChannel
     purchased_at: datetime
 
 
@@ -293,6 +299,20 @@ class StaffVisitListResponse(ApiModel):
     next_cursor: str | None = None
 
 
+class StaffProductResponse(ApiModel):
+    product_id: str
+    name: str
+    category: str
+    price: int
+    image_url: str
+
+
+class StaffPurchaseResponse(StaffProductResponse):
+    purchase_id: str
+    channel: PurchaseChannel
+    purchased_at: datetime
+
+
 class StaffCustomerResponse(ApiModel):
     customer_id: str
     masked_name: str
@@ -304,6 +324,9 @@ class StaffCustomerResponse(ApiModel):
     recently_viewed_product_ids: list[str] | None = None
     liked_product_ids: list[str] | None = None
     purchase_count: int | None = None
+    recently_viewed_products: list[StaffProductResponse] | None = None
+    liked_products: list[StaffProductResponse] | None = None
+    purchases: list[StaffPurchaseResponse] | None = None
 
 
 class StaffStatusRequest(ApiModel):

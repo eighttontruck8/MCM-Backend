@@ -49,7 +49,7 @@ function RequireAuth({ children, role = null }) {
   }
   const user = getAuthUser();
   if (role && user?.role !== role) {
-    return <Navigate to={user?.role === 'STAFF' ? '/staff/waiting' : '/main'} replace />;
+    return <Navigate to={user?.role === 'STAFF' ? '/staff' : '/main'} replace />;
   }
   return children;
 }
@@ -97,15 +97,15 @@ function App() {
         {/* 4. 직원용 서비스 */}
         {/* ========================================== */}
         <Route path="/staff" element={<RequireAuth role="STAFF"><StaffDashboard /></RequireAuth>} />
-        <Route path="/staff/dashboard" element={<RequireAuth role="STAFF"><StaffDashboard /></RequireAuth>} />
+        <Route path="/staff/dashboard" element={<Navigate to="/staff" replace />} />
         <Route path="/staff/recommend" element={<RequireAuth role="STAFF"><StaffRecommendation /></RequireAuth>} />
         <Route path="/staff/waiting" element={<RequireAuth role="STAFF"><StaffWaiting /></RequireAuth>} />
         <Route path="/staff/analysis" element={<RequireAuth role="STAFF"><StaffAnalysis /></RequireAuth>} />
 
         {/* 기존 경로 호환성 유지 */}
         <Route path="/waiting" element={<RequireAuth role="STAFF"><StaffWaiting /></RequireAuth>} />
-        <Route path="/staffpage" element={<RequireAuth role="STAFF"><StaffWaiting /></RequireAuth>} />
-        <Route path="/staff-page" element={<RequireAuth role="STAFF"><StaffWaiting /></RequireAuth>} />
+        <Route path="/staffpage" element={<Navigate to="/staff" replace />} />
+        <Route path="/staff-page" element={<Navigate to="/staff" replace />} />
 
         {/* 5. 404 에러 처리 */}
         <Route path="*" element={<div style={{ padding: '20px', textAlign: 'center' }}>요청하신 페이지를 찾을 수 없습니다.</div>} />

@@ -37,7 +37,7 @@ export default function LoginPage() {
       }
       if (tokens.user.role === 'STAFF') {
         clearEntryTag();
-        navigate('/staff/waiting', { replace: true });
+        navigate('/staff', { replace: true });
         return;
       }
 

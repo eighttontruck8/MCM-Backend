@@ -115,6 +115,7 @@ def get_purchases(authenticated: CurrentCustomer, db: DbSession) -> PurchaseList
                 category=purchase.category_snapshot,
                 price=purchase.price_snapshot,
                 image_url=product.image_url,
+                channel=purchase.channel,
                 purchased_at=purchase.purchased_at,
             )
             for purchase, product in rows

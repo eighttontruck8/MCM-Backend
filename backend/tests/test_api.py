@@ -541,6 +541,9 @@ def test_staff_queue_store_access_masking_and_visit_progress() -> None:
         assert profile.status_code == 200
         assert profile.json()["masked_name"] == "김**"
         assert profile.json()["purchase_count"] == 2
+        assert [item["product_id"] for item in profile.json()["recently_viewed_products"]] == ["P001", "P006"]
+        assert {item["channel"] for item in profile.json()["purchases"]} == {"ONLINE", "OFFLINE"}
+        assert all(item["image_url"] for item in profile.json()["purchases"])
 
         claimed = client.post(f"/api/v1/staff/check-ins/{checkin_id}/claim", headers=staff_headers)
         assert claimed.status_code == 200

@@ -195,12 +195,16 @@ class CustomerWishlist(Base):
 
 class PurchaseHistory(Base):
     __tablename__ = "purchase_history"
+    __table_args__ = (
+        CheckConstraint("channel IN ('ONLINE', 'OFFLINE')", name="ck_purchase_history_channel"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     customer_id: Mapped[str] = mapped_column(ForeignKey("customers.id"), index=True)
     product_id: Mapped[str] = mapped_column(ForeignKey("products.id"), index=True)
     category_snapshot: Mapped[str] = mapped_column(String(80))
     price_snapshot: Mapped[int] = mapped_column(Integer)
+    channel: Mapped[str] = mapped_column(String(20), default="ONLINE")
     purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 

@@ -1,252 +1,158 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStaffActiveVisit } from '../../utils/staffSession';
+import { fetchStaffVisits, getAuthUser, updateStaffVisitStatus } from '../../api/client';
+import ProductImage from '../../components/ProductImage/ProductImage';
+import StaffShell from '../../components/StaffShell/StaffShell';
+import { splitPurchasesByChannel } from '../../utils/staffDashboardData';
+import { clearStaffActiveVisit, getStaffActiveVisit } from '../../utils/staffSession';
+import { createMockTasteReport } from '../../utils/staffTasteReport';
 import './StaffDashboard.css';
 
-const customerList = [
-  {
-    id: 'C001',
-    name: '김서윤',
-    age: 29,
-    gender: '여성',
-    totalVisits: 4,
-    status: '응대중',
-    styleProfile: '모노톤 미니멀 럭셔리',
-    preferredColors: ['블랙', '화이트', '베이지'],
-    preferredFit: '오버사이즈',
-    recentInterest: ['가을 아우터', '캐시미어 니트'],
-    lastVisit: '2026.08.14',
-    note: '정장형 실루엣을 선호하고, 고급스러운 소재를 중요하게 생각합니다.',
-  },
-  {
-    id: 'C002',
-    name: '이준호',
-    age: 34,
-    gender: '남성',
-    totalVisits: 2,
-    status: '방금 퇴실',
-    styleProfile: '클래식 인터내셔널',
-    preferredColors: ['네이비', '그레이', '아이보리'],
-    preferredFit: '슬림핏',
-    recentInterest: ['울 코트', '드레스 셔츠'],
-    lastVisit: '2026.08.13',
-    note: '트렌디한 세미포멀 룩을 선호하며, 손질이 정교한 원단을 중요하게 봅니다.',
-  },
-  {
-    id: 'C003',
-    name: '박하린',
-    age: 27,
-    gender: '여성',
-    totalVisits: 6,
-    status: '응대중',
-    styleProfile: '소프트 로맨틱',
-    preferredColors: ['카키', '베이지', '크림'],
-    preferredFit: 'A라인',
-    recentInterest: ['플레어 코트', '니트 세트'],
-    lastVisit: '2026.08.12',
-    note: '부드러운 소재감과 여성스러운 실루엣을 우선시합니다.',
-  },
-  {
-    id: 'C004',
-    name: '최민수',
-    age: 41,
-    gender: '남성',
-    totalVisits: 1,
-    status: '방금 퇴실',
-    styleProfile: '모던 컨템포러리',
-    preferredColors: ['다크 그레이', '블랙', '브라운'],
-    preferredFit: '레귤러핏',
-    recentInterest: ['울 자켓', '니트 가디건'],
-    lastVisit: '2026.08.11',
-    note: '실용성과 고급스러움을 함께 추구하는 편입니다.',
-  },
-];
+const money = (value) => `${Number(value ?? 0).toLocaleString('ko-KR')}원`;
+const date = (value) => value ? new Date(value).toLocaleDateString('ko-KR') : '-';
 
+function ProductCard({ product, badge }) {
+  return (
+    <article className="staff-dashboard__product-card">
+      <ProductImage src={product.image_url} alt={product.name} className="staff-dashboard__product-image" />
+      <div className="staff-dashboard__product-copy">
+        {badge && <span className="staff-dashboard__product-badge">{badge}</span>}
+        <strong>{product.name}</strong>
+        <span>{product.category} · {money(product.price)}</span>
+        {product.purchased_at && <small>{date(product.purchased_at)} 구매</small>}
+        {product.reason && <small>{product.reason}</small>}
+      </div>
+    </article>
+  );
+}
+
+// [Frontend-Staff-03-'직원 고객 인사이트 홈'] 수락한 고객의 AI 취향과 채널별 구매 이력을 /staff에서 통합 표시한다.
 export default function StaffDashboard() {
   const navigate = useNavigate();
-  const [selectedCustomerId, setSelectedCustomerId] = useState('C001');
-  const [activeTab, setActiveTab] = useState('AI 분석');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const activeVisit = getStaffActiveVisit();
-  const liveCustomer = activeVisit?.profile;
+  const staff = getAuthUser();
+  const [activeVisit, setActiveVisit] = useState(() => getStaffActiveVisit());
+  const [queueCount, setQueueCount] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const selectedCustomer = useMemo(() => {
-    if (liveCustomer && typeof liveCustomer === 'object') {
-      return {
-        ...customerList[0],
-        id: liveCustomer.customer_id ?? 'C001',
-        name: liveCustomer.masked_name ?? '고객',
-        age: null,
-        gender: null,
-        totalVisits: liveCustomer.visit_count ?? 4,
-        status: '응대중',
-        styleProfile: liveCustomer.preferred_style ?? '공유된 스타일 정보 없음',
-        preferredColors: liveCustomer.preferred_colors ?? [],
-        preferredFit: '직원 상담 시 확인',
-        recentInterest: liveCustomer.liked_product_ids ?? [],
-        lastVisit: activeVisit?.visit?.waiting_since ? new Date(activeVisit.visit.waiting_since).toLocaleDateString('ko-KR') : '오늘',
-        note: `방문 목적: ${liveCustomer.visit_purpose ?? activeVisit?.visit?.visit_purpose ?? '미입력'}`,
-      };
+  useEffect(() => {
+    if (!staff?.store_id) return undefined;
+    const timer = window.setTimeout(() => {
+      fetchStaffVisits(staff.store_id)
+        .then((response) => setQueueCount(response.items.length))
+        .catch(() => undefined);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [staff?.store_id]);
+
+  const profile = activeVisit?.profile;
+  const guide = activeVisit?.guide;
+  const report = useMemo(
+    () => activeVisit?.tasteReport ?? createMockTasteReport(profile, activeVisit?.visit),
+    [activeVisit, profile],
+  );
+  const purchases = useMemo(() => splitPurchasesByChannel(profile?.purchases), [profile?.purchases]);
+  const interestProducts = profile?.recently_viewed_products ?? [];
+  const recommendations = guide?.recommended_products ?? [];
+
+  const handleComplete = async () => {
+    const checkinId = activeVisit?.visit?.checkin_id;
+    if (!checkinId || !window.confirm(`${profile?.masked_name ?? '고객'} 고객님의 응대를 완료하시겠습니까?`)) return;
+    setIsCompleting(true);
+    setErrorMessage('');
+    try {
+      await updateStaffVisitStatus(checkinId, 'COMPLETED');
+      clearStaffActiveVisit();
+      setActiveVisit(null);
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsCompleting(false);
     }
-
-    return customerList.find((customer) => customer.id === selectedCustomerId) ?? customerList[0];
-  }, [activeVisit?.visit?.visit_purpose, activeVisit?.visit?.waiting_since, liveCustomer, selectedCustomerId]);
+  };
 
   return (
-    <div className="staff-dashboard-page">
-      <div className={`staff-dashboard-shell ${isSidebarOpen ? 'staff-dashboard-shell--open' : ''}`}>
-        <aside className="staff-dashboard-sidebar">
-          <div className="staff-dashboard-sidebar-header">
-            <h2 className="staff-dashboard-heading">고객 목록</h2>
-            <span className="staff-dashboard-filter-pill">실시간</span>
-          </div>
-
-          <div className="staff-dashboard-list">
-            {customerList.map((customer) => {
-              const isSelected = customer.id === selectedCustomer.id;
-
-              return (
-                <button
-                  key={customer.id}
-                  type="button"
-                  onClick={() => setSelectedCustomerId(customer.id)}
-                  className={`staff-dashboard-customer-card ${
-                    isSelected ? 'staff-dashboard-customer-card--selected' : ''
-                  }`}
-                >
-                  <div className="staff-dashboard-avatar">{customer.name.charAt(0)}</div>
-
-                  <div className="staff-dashboard-customer-meta">
-                    <div className="staff-dashboard-row">
-                      <p className="staff-dashboard-customer-name">{customer.name}</p>
-                      <span
-                        className={`staff-dashboard-status-badge ${
-                          customer.status === '응대중'
-                            ? 'staff-dashboard-status-badge--active'
-                            : 'staff-dashboard-status-badge--left'
-                        }`}
-                      >
-                        {customer.status}
-                      </span>
-                    </div>
-
-                    <p className="staff-dashboard-customer-id">{customer.id}</p>
-
-                    <div className="staff-dashboard-info-row">
-                      {customer.age && <span>{customer.age}세</span>}
-                      {customer.age && customer.gender && <span className="staff-dashboard-dot" />}
-                      {customer.gender && <span>{customer.gender}</span>}
-                    </div>
-
-                    <div className="staff-dashboard-info-row">
-                      <span>총 {customer.totalVisits}회 방문</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
-
-        <main className="staff-dashboard-main">
-          <header className="staff-dashboard-top-header">
-            <div className="staff-dashboard-title-wrap">
-              <button
-                type="button"
-                className="staff-dashboard-toggle-button"
-                onClick={() => setIsSidebarOpen((prev) => !prev)}
-                aria-label={isSidebarOpen ? '고객 목록 닫기' : '고객 목록 열기'}
-              >
-                {isSidebarOpen ? '목록 닫기' : '고객 목록'}
-              </button>
-              <span className="staff-dashboard-customer-badge">{selectedCustomer.id}</span>
-              <h1 className="staff-dashboard-top-title">고객 프로필</h1>
+    <StaffShell active="dashboard" connectionState={activeVisit ? '고객 응대 중' : '대기 가능'} queueCount={queueCount}>
+      {!activeVisit ? (
+        <section className="staff-dashboard__empty">
+          <span className="staff-dashboard__eyebrow">TODAY'S CLIENTELING</span>
+          <h1>{staff?.display_name ?? '직원'} 쇼퍼님,<br />새로운 고객을 맞이할 준비가 되었습니다.</h1>
+          <p>웨이팅 리스트에서 고객의 간단한 취향 정보를 확인하고 응대를 시작해 주세요.</p>
+          <button type="button" onClick={() => navigate('/staff/waiting')}>
+            웨이팅 리스트 보기 {queueCount > 0 && `· ${queueCount}명`}
+          </button>
+        </section>
+      ) : (
+        <div className="staff-dashboard">
+          <section className="staff-dashboard__intro">
+            <div>
+              <span className="staff-dashboard__eyebrow">ACTIVE CLIENT</span>
+              <h1>{profile?.masked_name ?? '고객'} 고객님 인사이트</h1>
+              <p>{profile?.membership ?? 'MEMBER'} · 누적 방문 {profile?.visit_count ?? 0}회 · 방문 목적 {profile?.visit_purpose ?? '-'}</p>
             </div>
-          </header>
+            <div className="staff-dashboard__intro-actions">
+              <span><i /> 현재 응대 중</span>
+              <button type="button" disabled={isCompleting} onClick={handleComplete}>
+                {isCompleting ? '완료 처리 중' : '응대 완료'}
+              </button>
+            </div>
+          </section>
 
-          <section className="staff-dashboard-summary-card">
-            <div className="staff-dashboard-profile-card">
-              <div className="staff-dashboard-profile-header">
-                <div className="staff-dashboard-large-avatar">{selectedCustomer.name.charAt(0)}</div>
+          {errorMessage && <p className="staff-dashboard__error" role="alert">{errorMessage}</p>}
 
-                <div className="staff-dashboard-profile-text">
-                  <p className="staff-dashboard-profile-name">{selectedCustomer.name}</p>
+          <section className="staff-dashboard__ai-card">
+            <div className="staff-dashboard__ai-heading">
+              <span className="staff-dashboard__ai-mark">AI</span>
+              <div><small>AI TASTE PROFILE</small><h2>고객 취향 프로필</h2></div>
+            </div>
+            <p className="staff-dashboard__ai-summary">{guide?.customer_summary ?? report.summary}</p>
+            <div className="staff-dashboard__metrics">
+              {report.metrics.map((metric) => (
+                <div key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></div>
+              ))}
+            </div>
+            <div className="staff-dashboard__tags">
+              {report.tags.map((tag) => <span key={tag}>#{tag}</span>)}
+            </div>
+          </section>
 
-                  <div className="staff-dashboard-profile-info">
-                    {selectedCustomer.age && <span className="staff-dashboard-info-pill">{selectedCustomer.age}세</span>}
-                    {selectedCustomer.gender && <span className="staff-dashboard-info-pill">{selectedCustomer.gender}</span>}
-                    <span className="staff-dashboard-info-pill">총 {selectedCustomer.totalVisits}회 방문</span>
-                    <span className="staff-dashboard-info-pill">최근 방문 {selectedCustomer.lastVisit}</span>
-                  </div>
+          <section className="staff-dashboard__section">
+            <div className="staff-dashboard__section-heading">
+              <div><span>INTEREST &amp; AI PICKS</span><h2>최근 관심 상품과 추천</h2></div>
+              <small>고객 동의 범위 내 정보</small>
+            </div>
+            <div className="staff-dashboard__product-grid">
+              {[...interestProducts.map((item) => ({ ...item, badge: '최근 조회' })), ...recommendations.map((item) => ({ ...item, badge: 'AI 추천' }))]
+                .slice(0, 6)
+                .map((product) => <ProductCard key={`${product.badge}-${product.product_id}`} product={product} badge={product.badge} />)}
+              {!interestProducts.length && !recommendations.length && <p className="staff-dashboard__empty-copy">공유된 관심 상품이 없습니다.</p>}
+            </div>
+          </section>
+
+          <section className="staff-dashboard__section">
+            <div className="staff-dashboard__section-heading">
+              <div><span>PURCHASE HISTORY</span><h2>최근 구매 내역</h2></div>
+              <small>총 {profile?.purchase_count ?? 0}건</small>
+            </div>
+            <div className="staff-dashboard__purchase-columns">
+              <div className="staff-dashboard__purchase-column">
+                <h3><span>ONLINE</span> 온라인 구매 <b>{purchases.online.length}</b></h3>
+                <div className="staff-dashboard__purchase-list">
+                  {purchases.online.map((product) => <ProductCard key={product.purchase_id} product={product} />)}
+                  {!purchases.online.length && <p className="staff-dashboard__empty-copy">최근 온라인 구매가 없습니다.</p>}
+                </div>
+              </div>
+              <div className="staff-dashboard__purchase-column">
+                <h3><span>STORE</span> 오프라인 구매 <b>{purchases.offline.length}</b></h3>
+                <div className="staff-dashboard__purchase-list">
+                  {purchases.offline.map((product) => <ProductCard key={product.purchase_id} product={product} />)}
+                  {!purchases.offline.length && <p className="staff-dashboard__empty-copy">최근 오프라인 구매가 없습니다.</p>}
                 </div>
               </div>
             </div>
-
-            <div className="staff-dashboard-note-card">
-              <p className="staff-dashboard-note-label">메모</p>
-              <p className="staff-dashboard-note-text">{selectedCustomer.note}</p>
-            </div>
           </section>
-
-          <section className="staff-dashboard-detail-grid">
-            <div className="staff-dashboard-detail-card">
-              <p className="staff-dashboard-detail-label">스타일 프로필</p>
-              <div className="staff-dashboard-detail-value">{selectedCustomer.styleProfile}</div>
-            </div>
-
-            <div className="staff-dashboard-detail-card">
-              <p className="staff-dashboard-detail-label">선호 색상</p>
-              <div className="staff-dashboard-tag-group">
-                {selectedCustomer.preferredColors.map((color) => (
-                  <span key={color} className="staff-dashboard-tag">{color}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="staff-dashboard-detail-card">
-              <p className="staff-dashboard-detail-label">선호 핏</p>
-              <div className="staff-dashboard-detail-value">{selectedCustomer.preferredFit}</div>
-            </div>
-
-            <div className="staff-dashboard-detail-card">
-              <p className="staff-dashboard-detail-label">최근 관심 제품</p>
-              <div className="staff-dashboard-tag-group">
-                {selectedCustomer.recentInterest.map((item) => (
-                  <span key={item} className="staff-dashboard-tag">{item}</span>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <footer className="staff-dashboard-footer">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('AI 분석');
-                navigate('/staff/analysis');
-              }}
-              className={`staff-dashboard-action-button ${
-                activeTab === 'AI 분석' ? 'staff-dashboard-action-button--active' : ''
-              }`}
-            >
-              AI 분석
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('AI 추천');
-                navigate('/staff/recommend');
-              }}
-              className={`staff-dashboard-action-button ${
-                activeTab === 'AI 추천' ? 'staff-dashboard-action-button--active' : ''
-              }`}
-            >
-              AI 추천
-            </button>
-          </footer>
-        </main>
-      </div>
-    </div>
+        </div>
+      )}
+    </StaffShell>
   );
 }

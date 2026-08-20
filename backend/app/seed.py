@@ -142,11 +142,11 @@ def seed_database(
 
     if not session.scalar(select(func.count()).select_from(PurchaseHistory)):
         purchase_seed = [
-            ("C001", "P004", 120),
-            ("C001", "P001", 45),
-            ("C002", "P002", 30),
+            ("C001", "P004", 120, "OFFLINE"),
+            ("C001", "P001", 45, "ONLINE"),
+            ("C002", "P002", 30, "ONLINE"),
         ]
-        for customer_id, product_id, days_ago in purchase_seed:
+        for customer_id, product_id, days_ago, channel in purchase_seed:
             product = session.get(Product, product_id)
             session.add(
                 PurchaseHistory(
@@ -155,6 +155,7 @@ def seed_database(
                     product_id=product_id,
                     category_snapshot=product.category,
                     price_snapshot=product.price,
+                    channel=channel,
                     purchased_at=now - timedelta(days=days_ago),
                 )
             )

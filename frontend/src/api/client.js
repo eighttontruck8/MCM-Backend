@@ -57,6 +57,21 @@ export function clearAuth() {
   }
 }
 
+export async function logout() {
+  const refreshToken = getRefreshToken();
+  try {
+    if (refreshToken) {
+      await apiRequest(
+        '/api/v1/auth/logout',
+        { method: 'POST', body: JSON.stringify({ refresh_token: refreshToken }) },
+        false,
+      );
+    }
+  } finally {
+    clearAuth();
+  }
+}
+
 async function parseResponse(response) {
   if (response.status === 204) return null;
   const payload = await response.json().catch(() => null);
@@ -238,6 +253,10 @@ export function updateStaffVisitStatus(checkinId, status) {
 
 export function fetchStaffCustomer(customerId) {
   return apiRequest(`/api/v1/staff/customers/${encodeURIComponent(customerId)}`);
+}
+
+export function fetchStaffGuide(checkinId) {
+  return apiRequest(`/api/v1/staff/check-ins/${encodeURIComponent(checkinId)}/guide`);
 }
 
 export function openRealtime(path) {
