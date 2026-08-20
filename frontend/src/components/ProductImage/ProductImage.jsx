@@ -5,11 +5,11 @@ import './ProductImage.css';
 function resolveImageUrl(source) {
   if (!source) return null;
   if (/^https?:\/\//i.test(source)) return source;
-  // public 폴더의 로컬 이미지 (.avif, .png, .jpg, .svg 등)는 그대로 사용
-  if (/^\/.+\.(avif|png|jpe?g|webp|svg|gif)$/i.test(source)) return source;
-  // 백엔드에서 온 /assets/products/p001.jpg 같은 경로를 로컬 avif로 변환
+  // 백엔드에서 온 p001.jpg, /assets/products/p002.jpg 등 → 로컬 avif로 변환
   const legacyMatch = source.match(/p0*(\d+)\.\w+$/i);
   if (legacyMatch) return `/${parseInt(legacyMatch[1], 10)}.avif`;
+  // public 폴더의 로컬 이미지 (.avif, .png, .jpg, .svg 등)는 그대로 사용
+  if (/^\/.+\.(avif|png|jpe?g|webp|svg|gif)$/i.test(source)) return source;
   return `${API_BASE_URL}${source.startsWith('/') ? source : `/${source}`}`;
 }
 
