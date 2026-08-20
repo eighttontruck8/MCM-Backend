@@ -33,12 +33,12 @@
 .lookbook-card {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(26, 24, 23, 0.95), rgba(60, 52, 49, 0.95));
-  color: #fff;
+  background: #ffffff;
+  color: #0a0a0a;
   border: 1px solid #e8e3dc;
   min-height: 160px;
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   box-sizing: border-box;
 }
 
@@ -63,21 +63,50 @@
 }
 
 .lookbook-card__meta {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  padding: 10px 12px;
   pointer-events: none;
 }
 
 .lookbook-card__title {
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: #0a0a0a;
 }
 
 .lookbook-card__subtitle {
   font-size: 11px;
-  color: #eae6e0;
+  color: #7a746e;
   margin-top: 4px;
 }
+
+/* 세트 룩 */
+.lookbook-set {
+  grid-column: 1 / -1;
+  margin-bottom: 16px;
+}
+
+.lookbook-set__title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #0a0a0a;
+  padding: 8px 0;
+  border-bottom: 1px solid #e8e3dc;
+  margin-bottom: 10px;
+}
+
+.lookbook-set__items {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.lookbook-card--set-item {
+  min-height: auto;
+  flex-direction: column;
+}
+
+.lookbook-card--set-item .lookbook-card__image {
+  height: 160px;
+}
+

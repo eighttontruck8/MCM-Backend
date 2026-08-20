@@ -1,55 +1,39 @@
 {
   "title": "당신을 위한 MCM 큐레이션",
-  "intro": "고객님의 스타일에 맞춰 엄선한 MCM 컬렉션입니다.",
+  "intro": "고객님의 스타일에 맞춰 엄선한 MCM 룩북입니다.",
   "looks": [
     {
-      "product_id": "P001",
-      "product": "Stark 베베 부 골드 크리스탈 비세토스 백팩",
-      "styling": "골드 크리스탈 디테일로 어떤 룩에도 포인트를 더하는 시그니처 백팩입니다.",
-      "image_url": "/1.avif",
-      "price": 2350000,
-      "in_stock": true
+      "look_name": "클래식 비즈니스 룩",
+      "items": [
+        { "product_id": "P011", "product": "트렌치 코트", "category": "아우터", "image_url": "/11.avif", "price": 1980000 },
+        { "product_id": "P005", "product": "로고 프린트 티셔츠", "category": "상의", "image_url": "/5.avif", "price": 450000 },
+        { "product_id": "P002", "product": "New Liz 비세토스 쇼퍼", "category": "가방", "image_url": "/2.avif", "price": 1150000 }
+      ]
     },
     {
-      "product_id": "P002",
-      "product": "New Liz 비세토스 쇼퍼",
-      "styling": "넉넉한 수납과 클래식한 비세토스 패턴으로 데일리부터 오피스까지.",
-      "image_url": "/2.avif",
-      "price": 1150000,
-      "in_stock": true
+      "look_name": "캐주얼 스트릿 룩",
+      "items": [
+        { "product_id": "P006", "product": "MCM X We The Best 플라밍고 티셔츠", "category": "상의", "image_url": "/6.avif", "price": 520000 },
+        { "product_id": "P009", "product": "카고 팬츠", "category": "하의", "image_url": "/9.avif", "price": 650000 },
+        { "product_id": "P001", "product": "Stark 베베 부 골드 크리스탈 비세토스 백팩", "category": "가방", "image_url": "/1.avif", "price": 2350000 }
+      ]
     },
     {
-      "product_id": "P004",
-      "product": "Aren 비세토스 E/W 숄더백",
-      "styling": "단정한 셋업에 매치하면 세련된 비즈니스 룩을 완성할 수 있습니다.",
-      "image_url": "/4.avif",
-      "price": 980000,
-      "in_stock": true
+      "look_name": "글램 이브닝 룩",
+      "items": [
+        { "product_id": "P013", "product": "시어링 ECONYL® 애비에이터 재킷", "category": "아우터", "image_url": "/13.avif", "price": 3200000 },
+        { "product_id": "P008", "product": "루렉스 데님 플레어 팬츠", "category": "하의", "image_url": "/8.avif", "price": 780000 },
+        { "product_id": "P015", "product": "Pina 스터드 장식 카프스킨 지갑", "category": "가방", "image_url": "/15.avif", "price": 580000 }
+      ]
     },
     {
-      "product_id": "P011",
-      "product": "트렌치 코트",
-      "styling": "시즌 전환기에 빠질 수 없는 클래식 아우터. 어깨 라인이 돋보입니다.",
-      "image_url": "/11.avif",
-      "price": 1980000,
-      "in_stock": true
-    },
-    {
-      "product_id": "P008",
-      "product": "루렉스 데님 플레어 팬츠",
-      "styling": "은은한 루렉스 광택이 글래머러스한 이브닝 룩에 어울립니다.",
-      "image_url": "/8.avif",
-      "price": 780000,
-      "in_stock": true
-    },
-    {
-      "product_id": "P013",
-      "product": "시어링 ECONYL® 애비에이터 재킷",
-      "styling": "지속 가능한 소재와 프리미엄 시어링의 조합. 겨울 스타일의 정점.",
-      "image_url": "/13.avif",
-      "price": 3200000,
-      "in_stock": true
+      "look_name": "모던 데일리 룩",
+      "items": [
+        { "product_id": "P007", "product": "마스 도그 디스코 티셔츠", "category": "상의", "image_url": "/7.avif", "price": 480000 },
+        { "product_id": "P010", "product": "루렉스 데님 오버올 스커트", "category": "하의", "image_url": "/10.avif", "price": 850000 },
+        { "product_id": "P004", "product": "Aren 비세토스 E/W 숄더백", "category": "가방", "image_url": "/4.avif", "price": 980000 }
+      ]
     }
   ],
-  "closing": "매장에서 직접 착용감을 확인해 보세요. 고객님만을 위한 프라이빗 쇼핑이 준비되어 있습니다."
+  "closing": "매장에서 직접 착용감을 확인해 보세요."
 }

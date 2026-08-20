@@ -15,7 +15,12 @@ const LOCAL_IMAGE_MAP = Object.fromEntries(mockProducts.map((p) => [p.product_id
 export default function LookbookPage() {
   const navigate = useNavigate();
   const [checkin] = useState(() => getCheckin());
-  const [lookbook, setLookbook] = useState(() => getLookbook(checkin?.checkin_id));
+  const [lookbook, setLookbook] = useState(() => {
+    const cached = getLookbook(checkin?.checkin_id);
+    // 캐시된 데이터가 옛날 형식(p00X.jpg 이미지)이면 무시
+    if (cached?.looks?.[0]?.image_url && /p\d+\.\w+$/i.test(cached.looks[0].image_url)) return null;
+    return cached;
+  });
   const [isLoading, setIsLoading] = useState(!lookbook);
   const [noticeMessage, setNoticeMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -93,15 +98,37 @@ export default function LookbookPage() {
         </section>
       )}
       <section className="lookbook-grid">
-        {looks.map((look, index) => (
-          <button type="button" key={look.product_id} className={`lookbook-card lookbook-card--${index % 3 === 0 ? 'full' : index % 3 === 1 ? 'half-left' : 'half-right'}`} onClick={() => openLook(look)}>
-            <ProductImage className="lookbook-card__image" src={look.image_url} alt={look.product} />
-            <div className="lookbook-card__meta">
-              <div className="lookbook-card__title">{look.product}</div>
-              <div className="lookbook-card__subtitle">{look.styling}</div>
-            </div>
-          </button>
-        ))}
+        {looks.map((look, index) => {
+          // 세트 구조 (items 배열이 있는 경우)
+          if (Array.isArray(look.items)) {
+            return (
+              <div key={look.look_name || index} className="lookbook-set">
+                <div className="lookbook-set__title">{look.look_name}</div>
+                <div className="lookbook-set__items">
+                  {look.items.map((item) => (
+                    <button type="button" key={item.product_id} className="lookbook-card lookbook-card--set-item" onClick={() => openLook(item)}>
+                      <ProductImage className="lookbook-card__image" src={item.image_url} alt={item.product} />
+                      <div className="lookbook-card__meta">
+                        <div className="lookbook-card__title">{item.product}</div>
+                        <div className="lookbook-card__subtitle">{item.category} · {item.price?.toLocaleString()}원</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          // 단일 아이템 구조 (API 응답 호환)
+          return (
+            <button type="button" key={look.product_id} className={`lookbook-card lookbook-card--${index % 3 === 0 ? 'full' : index % 3 === 1 ? 'half-left' : 'half-right'}`} onClick={() => openLook(look)}>
+              <ProductImage className="lookbook-card__image" src={look.image_url} alt={look.product} />
+              <div className="lookbook-card__meta">
+                <div className="lookbook-card__title">{look.product}</div>
+                <div className="lookbook-card__subtitle">{look.styling}</div>
+              </div>
+            </button>
+          );
+        })}
       </section>
     </PageLayout>
   );
