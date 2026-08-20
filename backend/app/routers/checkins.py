@@ -154,6 +154,7 @@ def create_checkin_for_store(customer: Customer, store: Store, db: Session) -> C
 @router.post("/store", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_store_checkin(
     body: StoreCheckinCreateRequest,
+    request: Request,
     customer_id: CustomerId,
     db: DbSession,
 ) -> CheckinCreateResponse:
@@ -165,7 +166,34 @@ def create_store_checkin(
     store = db.get(Store, body.store_id)
     if store is None or not store.is_active:
         raise DomainError(404, "STORE_NOT_FOUND", "체크인할 수 있는 매장을 찾을 수 없습니다.")
-    return create_checkin_for_store(customer, store, db)
+    replaced_event = None
+    if body.restart_active:
+        # [Backend-15-'매장 재체크인'] 명시적인 새 방문은 같은 매장의 이전 활성 방문을 종료한 뒤 시작한다.
+        existing = db.scalar(
+            select(Checkin).where(
+                Checkin.customer_id == customer.id,
+                Checkin.store_id == store.id,
+                Checkin.status.in_(ACTIVE_STATUSES),
+            )
+        )
+        if existing is not None:
+            now = utc_now()
+            existing.status = CheckinStatus.CANCELLED.value
+            existing.updated_at = now
+            existing.completed_at = now
+            assignment = db.scalar(select(StaffAssignment).where(StaffAssignment.checkin_id == existing.id))
+            if assignment is not None:
+                assignment.ended_at = now
+            db.flush()
+            replaced_event = (
+                [f"staff:{existing.store_id}", f"customer:{existing.customer_id}"],
+                {"checkin_id": existing.id, "status": existing.status},
+            )
+    response = create_checkin_for_store(customer, store, db)
+    if replaced_event is not None:
+        topics, data = replaced_event
+        request.app.state.event_broker.publish(topics, "VISIT_CANCELLED", data)
+    return response
 
 
 @router.post("/demo", response_model=CheckinCreateResponse, status_code=status.HTTP_201_CREATED)

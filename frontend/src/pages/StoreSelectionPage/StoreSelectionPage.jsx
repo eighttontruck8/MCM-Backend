@@ -58,7 +58,7 @@ export default function StoreSelectionPage() {
     setPendingStoreId(storeId);
     setErrorMessage('');
     try {
-      const createdCheckin = await createOrResumeStoreCheckin(storeId);
+      const createdCheckin = await createOrResumeStoreCheckin(storeId, { restartActive: true });
       const checkin = await moveCheckinToStaffQueue(createdCheckin, { setShoppingMode, createServiceRequest });
       saveCheckin(checkin);
       navigate(getCheckinContinuationPath(checkin), { replace: true });

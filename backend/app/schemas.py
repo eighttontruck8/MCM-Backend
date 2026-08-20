@@ -202,6 +202,7 @@ class CheckinCreateRequest(ApiModel):
 
 class StoreCheckinCreateRequest(ApiModel):
     store_id: str = Field(min_length=1, max_length=32)
+    restart_active: bool = False
 
 
 class EntryTagResponse(ApiModel):

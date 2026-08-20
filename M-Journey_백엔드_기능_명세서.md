@@ -287,6 +287,7 @@ AI의 현재 `stock: boolean`은 데모에 쓸 수 있지만, 백엔드 DB에서
 | GET | `/entry/{tag_token}` | QR 스캔 후 태그 검증 및 프론트 체크인 화면 리다이렉트 | 불필요 |
 | GET | `/api/v1/entry-tags/{tag_token}` | 진입 태그·매장·체크인 URL 검증 | 불필요 |
 | POST | `/api/v1/check-ins` | 인증 고객의 체크인 생성 | 고객 |
+| POST | `/api/v1/check-ins/store` | 선택 매장 체크인 생성. `restart_active=true`이면 같은 매장의 이전 활성 방문을 종료하고 새 방문 시작 | 고객 |
 | POST | `/api/v1/check-ins/demo` | 홈 버튼에서 서버 설정 QR 토큰으로 시연 체크인 생성 | 고객 |
 
 `POST /check-ins`
@@ -294,6 +295,15 @@ AI의 현재 `stock: boolean`은 데모에 쓸 수 있지만, 백엔드 DB에서
 ```json
 {
   "tag_token": "nfc_opaque_random_token"
+}
+```
+
+`POST /check-ins/store`
+
+```json
+{
+  "store_id": "S001",
+  "restart_active": true
 }
 ```
 

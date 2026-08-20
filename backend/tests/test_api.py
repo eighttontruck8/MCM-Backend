@@ -370,6 +370,19 @@ def test_customer_can_list_stores_and_check_in_to_selected_store() -> None:
         assert response.json()["store"]["store_id"] == "S002"
         assert response.json()["status"] == "CHECKED_IN"
 
+        replacement = client.post(
+            "/api/v1/check-ins/store",
+            headers=customer_headers,
+            json={"store_id": "S002", "restart_active": True},
+        )
+        assert replacement.status_code == 201, replacement.text
+        assert replacement.json()["checkin_id"] != response.json()["checkin_id"]
+        previous = client.get(
+            f"/api/v1/check-ins/{response.json()['checkin_id']}",
+            headers=customer_headers,
+        )
+        assert previous.json()["status"] == "CANCELLED"
+
         unavailable = client.post(
             "/api/v1/check-ins/store",
             headers=customer_headers,

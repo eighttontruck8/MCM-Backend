@@ -192,11 +192,11 @@ export function fetchStores() {
   return apiRequest('/api/v1/stores', {}, false);
 }
 
-export async function createOrResumeStoreCheckin(storeId) {
+export async function createOrResumeStoreCheckin(storeId, { restartActive = false } = {}) {
   try {
     return await apiRequest('/api/v1/check-ins/store', {
       method: 'POST',
-      body: JSON.stringify({ store_id: storeId }),
+      body: JSON.stringify({ store_id: storeId, restart_active: restartActive }),
     });
   } catch (error) {
     if (error instanceof ApiError && error.code === 'ACTIVE_CHECKIN_EXISTS' && error.details?.checkin_id) {
