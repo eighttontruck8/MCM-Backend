@@ -5,6 +5,7 @@ import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { getCheckin } from '../../utils/checkinSession';
 import { getLookbook, saveLookbook, saveSelectedLook } from '../../utils/lookbookSession';
+import lookbookFallback from '../../mock/customerLookbookMock.json';
 import './LookbookPage.css';
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
@@ -55,7 +56,8 @@ export default function LookbookPage() {
           looks: catalogLooks,
         });
       } catch (error) {
-        setErrorMessage(error.message || '룩북을 불러오지 못했습니다.');
+        // API 모두 실패 시 로컬 mock 룩북으로 fallback
+        setLookbook(lookbookFallback);
       } finally {
         setIsLoading(false);
       }

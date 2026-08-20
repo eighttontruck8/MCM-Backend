@@ -1,5 +1,18 @@
 /* [Frontend-16-'공통 페이지 레이아웃'] 페이지 고유 스타일만 유지 */
 
+.main-recommend-page__brand-banner {
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.main-recommend-page__brand-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
 .product-image { background-position: center; background-size: cover; }
 .recommend-state { margin: 0; padding: 24px 20px; color: #7a746e; font-family: 'DM Sans', sans-serif; font-size: var(--font-body); line-height: 1.6; }
 .recommend-state--error { color: #b42318; }

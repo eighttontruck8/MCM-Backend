@@ -1,15 +1,55 @@
 {
-  "title": "성공적인 비즈니스 트립을 위한 MCM 컬렉션",
-  "intro": "홍길동 고객님, 다가오는 출장 일정에 완벽하게 어울릴 스마트한 스타일을 준비했습니다.",
+  "title": "당신을 위한 MCM 큐레이션",
+  "intro": "고객님의 스타일에 맞춰 엄선한 MCM 컬렉션입니다.",
   "looks": [
-    { 
-      "product": "아렌 비세토스 크로스바디", 
-      "styling": "단정한 수트 셋업에 크로스바디로 매치하여 양손이 자유로운 스마트 비즈니스 룩을 연출해 보세요." 
+    {
+      "product_id": "P001",
+      "product": "Stark 베베 부 골드 크리스탈 비세토스 백팩",
+      "styling": "골드 크리스탈 디테일로 어떤 룩에도 포인트를 더하는 시그니처 백팩입니다.",
+      "image_url": "/1.avif",
+      "price": 2350000,
+      "in_stock": true
     },
-    { 
-      "product": "비세토스 오리지널 백팩", 
-      "styling": "캐주얼한 금요일 출근길이나 장시간 비행이 있는 날, 편안하면서도 스타일리시하게 멜 수 있습니다." 
+    {
+      "product_id": "P002",
+      "product": "New Liz 비세토스 쇼퍼",
+      "styling": "넉넉한 수납과 클래식한 비세토스 패턴으로 데일리부터 오피스까지.",
+      "image_url": "/2.avif",
+      "price": 1150000,
+      "in_stock": true
+    },
+    {
+      "product_id": "P004",
+      "product": "Aren 비세토스 E/W 숄더백",
+      "styling": "단정한 셋업에 매치하면 세련된 비즈니스 룩을 완성할 수 있습니다.",
+      "image_url": "/4.avif",
+      "price": 980000,
+      "in_stock": true
+    },
+    {
+      "product_id": "P011",
+      "product": "트렌치 코트",
+      "styling": "시즌 전환기에 빠질 수 없는 클래식 아우터. 어깨 라인이 돋보입니다.",
+      "image_url": "/11.avif",
+      "price": 1980000,
+      "in_stock": true
+    },
+    {
+      "product_id": "P008",
+      "product": "루렉스 데님 플레어 팬츠",
+      "styling": "은은한 루렉스 광택이 글래머러스한 이브닝 룩에 어울립니다.",
+      "image_url": "/8.avif",
+      "price": 780000,
+      "in_stock": true
+    },
+    {
+      "product_id": "P013",
+      "product": "시어링 ECONYL® 애비에이터 재킷",
+      "styling": "지속 가능한 소재와 프리미엄 시어링의 조합. 겨울 스타일의 정점.",
+      "image_url": "/13.avif",
+      "price": 3200000,
+      "in_stock": true
     }
   ],
-  "closing": "선별된 아이템들을 매장에서 직접 확인해 보세요. 고객님만을 위한 프라이빗한 쇼핑이 준비되어 있습니다."
+  "closing": "매장에서 직접 착용감을 확인해 보세요. 고객님만을 위한 프라이빗 쇼핑이 준비되어 있습니다."
 }

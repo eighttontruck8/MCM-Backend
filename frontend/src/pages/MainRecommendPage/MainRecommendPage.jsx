@@ -4,6 +4,8 @@ import { fetchMyProfile, fetchRecommendations } from '../../api/client';
 import PageLayout from '../../components/PageLayout/PageLayout';
 import ProductImage from '../../components/ProductImage/ProductImage';
 import { useWishlist } from '../../utils/wishlistStorage';
+import { mockProducts } from '../../mock/mockProducts';
+import brandImage from '../../assets/brand.png';
 import './MainRecommendPage.css';
 
 // [Frontend-04-'추천 및 고객 활동 REST 연동']
@@ -22,7 +24,17 @@ export default function MainRecommendPage() {
         setCustomer(profile);
         setProducts(recommendations.items);
       } catch (error) {
-        setErrorMessage(error.message);
+        // API 실패 시 mock 데이터로 fallback
+        const fallback = mockProducts.slice(0, 6).map((p) => ({
+          product_id: p.product_id,
+          name: p.name,
+          line: p.brand,
+          price: p.price,
+          image_url: p.image_url,
+          category: p.category,
+          tags: p.tags,
+        }));
+        setProducts(fallback);
       } finally {
         setIsLoading(false);
       }
@@ -38,6 +50,10 @@ export default function MainRecommendPage() {
 
   return (
     <PageLayout navActive="home" eyebrow={`안녕하세요, ${customer?.name ?? '고객'}님`} title="오늘의 맞춤 추천" headerRight={checkinButton}>
+      <div className="main-recommend-page__brand-banner">
+        <img src={brandImage} alt="MCM Brand" className="main-recommend-page__brand-image" />
+      </div>
+
       <div className="main-recommend-page__context-banner">
         <div className="main-recommend-page__context-icon">✦</div>
         <div className="main-recommend-page__context-text">
