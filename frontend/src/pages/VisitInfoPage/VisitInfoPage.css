@@ -2,28 +2,9 @@
   background-color: #fafaf8;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  position: relative;
+  align-items: center;
   width: 100%;
-}
-
-.visit-info-page__body {
-  background-color: #fafaf8;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 392.687px;
-  position: relative;
-}
-
-.visit-info-page__app {
-  background-color: #fafaf8;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.12);
-  display: flex;
-  flex-direction: column;
-  min-height: 853.233px;
-  width: 100%;
-  position: relative;
+  min-height: 100vh;
 }
 
 .visit-info-page__screen {
@@ -31,16 +12,16 @@
   display: flex;
   flex-direction: column;
   padding: 56px 28px 48px;
-  min-height: 853.233px;
+  min-height: 100vh;
   width: 100%;
-  position: relative;
+  max-width: 430px;
+  box-sizing: border-box;
 }
 
 .visit-info-page__header {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 336.687px;
   padding-bottom: 36px;
 }
 
@@ -84,6 +65,7 @@
   margin: 0;
 }
 
+/* 필수 동의 패널 - 아래 여백 추가 */
 .visit-info-page__consent-panel {
   background-color: #ffffff;
   border: 1.112px solid #e8e3dc;
@@ -93,6 +75,7 @@
   padding: 20px;
   width: 100%;
   box-sizing: border-box;
+  margin-bottom: 28px;
 }
 
 .visit-info-page__consent-copy {
@@ -156,6 +139,7 @@
   font-size: 11px;
   color: transparent;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .visit-info-page__checkbox-input {
@@ -178,20 +162,21 @@
   color: #7a746e;
 }
 
+/* 방문 목적 섹션 */
 .visit-info-page__purpose-section {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  width: 336.687px;
-  padding-bottom: 36px;
+  width: 100%;
+  padding-bottom: 28px;
 }
 
+/* 2x2 그리드 */
 .visit-info-page__purpose-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  position: relative;
-  height: 80.408px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
 }
 
 .visit-info-page__pill {
@@ -200,11 +185,12 @@
   font-family: 'DM Sans', sans-serif;
   font-weight: 300;
   font-size: 12px;
-  line-height: 18px;
+  line-height: 1.4;
   color: #0a0a0a;
-  padding: 8px 16px;
+  padding: 12px 8px;
   text-align: center;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: keep-all;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -215,34 +201,27 @@
   color: #ffffff;
 }
 
-.visit-info-page__pill:nth-child(1) {
-  grid-column: 1 / 2;
-  align-self: start;
-}
-
-.visit-info-page__pill:nth-child(2) {
-  grid-column: 2 / 3;
-  align-self: start;
-}
-
-.visit-info-page__pill:nth-child(3) {
-  grid-column: 3 / 4;
-  align-self: start;
-}
-
-.visit-info-page__pill:nth-child(4) {
-  grid-column: 1 / 2;
-  align-self: end;
-}
-
+/* 직원 메모 입력 - label과 textarea 바짝 붙임 */
 .visit-info-page__input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   width: 100%;
+}
+
+.visit-info-page__input-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  font-size: 13px;
+  line-height: normal;
+  color: rgba(10, 10, 10, 0.5);
+  margin: 0;
 }
 
 .visit-info-page__text-input {
   width: 100%;
   border-bottom: 1.112px solid #e8e3dc;
-  padding: 8px 0 10px;
+  padding: 6px 0 8px;
   box-sizing: border-box;
   border-top: 0;
   border-right: 0;
@@ -255,20 +234,19 @@
   color: #0a0a0a;
 }
 
-.visit-info-page__input-placeholder {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 300;
-  font-size: 13px;
-  line-height: normal;
-  color: rgba(10, 10, 10, 0.5);
-  margin: 0;
+/* 버튼 영역 */
+.visit-info-page__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .visit-info-page__submit {
-  width: 336.718px;
-  background-color: #c4bfb9;
+  width: 100%;
   border: none;
-  color: #ffffff;
   font-family: 'DM Sans', sans-serif;
   font-weight: 500;
   font-size: 12px;
@@ -278,12 +256,22 @@
   text-align: center;
   padding: 16px 0;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
-.visit-info-page__submit--active {
+.visit-info-page__submit--staff {
+  background-color: #c4bfb9;
+  color: #ffffff;
+}
+
+.visit-info-page__submit--staff.visit-info-page__submit--active {
   background-color: #0a0a0a;
-  transform: translateY(0);
+}
+
+.visit-info-page__submit--private {
+  background-color: transparent;
+  border: 1.112px solid #0a0a0a;
+  color: #0a0a0a;
 }
 
 .visit-info-page__submit:disabled,
@@ -293,7 +281,7 @@
 }
 
 .visit-info-page__error {
-  margin: -20px 0 14px;
+  margin: 0 0 8px;
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
   line-height: 18px;

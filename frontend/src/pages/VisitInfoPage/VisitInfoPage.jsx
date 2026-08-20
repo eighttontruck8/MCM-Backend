@@ -14,7 +14,7 @@ const PURPOSE_OPTIONS = [
 const CONSENT = {
   agreed: true,
   policy_version: 'staff-profile-share-v1',
-  scopes: ['PURCHASE_HISTORY', 'STYLE_PROFILE'],
+  scopes: ['PURCHASE_HISTORY', 'INTEREST_PRODUCTS'],
 };
 
 // [Frontend-02-'쇼핑 방식 및 직원 응대 요청 연동']
@@ -27,7 +27,7 @@ export default function VisitInfoPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = async () => {
+  const handleStaffRequest = async () => {
     if (!isAgreed) {
       setErrorMessage('직원에게 정보를 공유하려면 필수 동의가 필요합니다.');
       return;
@@ -57,84 +57,95 @@ export default function VisitInfoPage() {
     }
   };
 
+  const handlePrivateShopping = () => {
+    navigate('/main');
+  };
+
   return (
     <div className="visit-info-page" data-node-id="7:1178" data-name="고객 입력2">
-      <div className="visit-info-page__body">
-        <div className="visit-info-page__app">
-          <div className="visit-info-page__screen">
-            <div className="visit-info-page__header">
-              <p className="visit-info-page__eyebrow">맞춤 응대 준비</p>
-              <div className="visit-info-page__title">
-                <p>개인화 서비스</p>
-                <p>동의 및 방문 정보</p>
-              </div>
-            </div>
-
-            <div className="visit-info-page__consent-panel">
-              <p className="visit-info-page__section-label">필수 동의</p>
-              <p className="visit-info-page__consent-copy">담당 직원에게 아래 정보를 공유하는 데 동의합니다.</p>
-              <div className="visit-info-page__consent-list">
-                {['구매 이력 및 관심 상품', '사이즈 · 취향 프로필'].map((label) => (
-                  <div className="visit-info-page__consent-item" key={label}>
-                    <span className="visit-info-page__consent-bullet">◈</span>
-                    <span className="visit-info-page__consent-text">{label}</span>
-                  </div>
-                ))}
-              </div>
-              <label className={`visit-info-page__agreement ${isAgreed ? 'visit-info-page__agreement--checked' : ''}`}>
-                <input
-                  type="checkbox"
-                  className="visit-info-page__checkbox-input"
-                  checked={isAgreed}
-                  onChange={(event) => setIsAgreed(event.target.checked)}
-                />
-                <span className={`visit-info-page__checkbox ${isAgreed ? 'visit-info-page__checkbox--checked' : ''}`} aria-hidden="true">
-                  {isAgreed ? '✓' : ''}
-                </span>
-                <span className="visit-info-page__agreement-text">위 정보 공유에 동의합니다</span>
-              </label>
-            </div>
-
-            <div className="visit-info-page__purpose-section">
-              <p className="visit-info-page__section-label visit-info-page__section-label--purpose">
-                <span className="visit-info-page__section-label-text">방문 목적 </span>
-                <span className="visit-info-page__section-label-highlight">선택</span>
-              </p>
-              <div className="visit-info-page__purpose-grid">
-                {PURPOSE_OPTIONS.map((purpose) => (
-                  <button
-                    key={purpose.code}
-                    type="button"
-                    disabled={isSubmitting}
-                    className={`visit-info-page__pill ${selectedPurpose === purpose.code ? 'visit-info-page__pill--selected' : ''}`}
-                    onClick={() => setSelectedPurpose(purpose.code)}
-                  >
-                    {purpose.label}
-                  </button>
-                ))}
-              </div>
-              <div className="visit-info-page__input-group">
-                <textarea
-                  className="visit-info-page__text-input"
-                  value={note}
-                  maxLength={500}
-                  rows={2}
-                  placeholder="직원에게 전할 내용을 입력해주세요."
-                  onChange={(event) => setNote(event.target.value)}
-                />
-              </div>
-            </div>
-
-            {errorMessage && <p className="visit-info-page__error" role="alert">{errorMessage}</p>}
-            <button
-              type="button"
-              disabled={isSubmitting}
-              className={`visit-info-page__submit ${isAgreed ? 'visit-info-page__submit--active' : ''}`}
-              onClick={handleSubmit}
-            >
-              {isSubmitting ? '요청 중...' : '직원 배정 요청'}
-            </button>
+      <div className="visit-info-page__screen">
+        <div className="visit-info-page__header">
+          <p className="visit-info-page__eyebrow">맞춤 응대 준비</p>
+          <div className="visit-info-page__title">
+            <p>개인화 서비스</p>
+            <p>동의 및 방문 정보</p>
           </div>
+        </div>
+
+        <div className="visit-info-page__consent-panel">
+          <p className="visit-info-page__section-label">필수 동의</p>
+          <p className="visit-info-page__consent-copy">담당 직원에게 아래 정보를 공유하는 데 동의합니다.</p>
+          <div className="visit-info-page__consent-list">
+            {['구매 이력 및 관심 상품'].map((label) => (
+              <div className="visit-info-page__consent-item" key={label}>
+                <span className="visit-info-page__consent-bullet">◈</span>
+                <span className="visit-info-page__consent-text">{label}</span>
+              </div>
+            ))}
+          </div>
+          <label className={`visit-info-page__agreement ${isAgreed ? 'visit-info-page__agreement--checked' : ''}`}>
+            <input
+              type="checkbox"
+              className="visit-info-page__checkbox-input"
+              checked={isAgreed}
+              onChange={(event) => setIsAgreed(event.target.checked)}
+            />
+            <span className={`visit-info-page__checkbox ${isAgreed ? 'visit-info-page__checkbox--checked' : ''}`} aria-hidden="true">
+              {isAgreed ? '✓' : ''}
+            </span>
+            <span className="visit-info-page__agreement-text">위 정보 공유에 동의합니다</span>
+          </label>
+        </div>
+
+        <div className="visit-info-page__purpose-section">
+          <p className="visit-info-page__section-label visit-info-page__section-label--purpose">
+            <span className="visit-info-page__section-label-text">방문 목적 </span>
+            <span className="visit-info-page__section-label-highlight">선택</span>
+          </p>
+          <div className="visit-info-page__purpose-grid">
+            {PURPOSE_OPTIONS.map((purpose) => (
+              <button
+                key={purpose.code}
+                type="button"
+                disabled={isSubmitting}
+                className={`visit-info-page__pill ${selectedPurpose === purpose.code ? 'visit-info-page__pill--selected' : ''}`}
+                onClick={() => setSelectedPurpose(purpose.code)}
+              >
+                {purpose.label}
+              </button>
+            ))}
+          </div>
+          <div className="visit-info-page__input-group">
+            <p className="visit-info-page__input-label">직원에게 전할 내용을 입력해주세요.</p>
+            <textarea
+              className="visit-info-page__text-input"
+              value={note}
+              maxLength={500}
+              rows={2}
+              placeholder=""
+              onChange={(event) => setNote(event.target.value)}
+            />
+          </div>
+        </div>
+
+        {errorMessage && <p className="visit-info-page__error" role="alert">{errorMessage}</p>}
+        <div className="visit-info-page__actions">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            className={`visit-info-page__submit visit-info-page__submit--staff ${isAgreed ? 'visit-info-page__submit--active' : ''}`}
+            onClick={handleStaffRequest}
+          >
+            {isSubmitting ? '요청 중...' : '직원 배정 요청'}
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            className="visit-info-page__submit visit-info-page__submit--private"
+            onClick={handlePrivateShopping}
+          >
+            혼자서 프라이빗 쇼핑
+          </button>
         </div>
       </div>
     </div>
