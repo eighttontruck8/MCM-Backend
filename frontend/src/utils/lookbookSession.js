@@ -23,6 +23,7 @@ export function getLookbook(checkinId) {
     stored?.checkin_id !== checkinId
     || !stored.data
     || !Array.isArray(stored.data.looks)
+    || stored.data.looks.length === 0
   ) {
     if (stored) window.sessionStorage.removeItem(LOOKBOOK_KEY);
     return null;

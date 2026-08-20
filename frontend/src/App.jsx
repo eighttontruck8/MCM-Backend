@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom';
 import { getAccessToken, getAuthUser } from './api/client';
+import { usePageRevive } from './utils/usePageRevive';
 
 // ==========================================
 // 기존 고객용 화면 컴포넌트 불러오기 (유지)
@@ -53,9 +54,11 @@ function RequireAuth({ children, role = null }) {
 // 전체 앱 라우팅 
 // ==========================================
 function App() {
+  const reviveKey = usePageRevive();
+
   return (
     <BrowserRouter>
-      <Routes>
+      <Routes key={reviveKey}>
         {/* 1. 로그인 & 회원가입 */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<SignupPage />} />

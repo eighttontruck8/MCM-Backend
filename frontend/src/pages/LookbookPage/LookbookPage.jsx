@@ -18,16 +18,19 @@ export default function LookbookPage() {
   const looks = Array.isArray(lookbook?.looks) ? lookbook.looks : [];
 
   useEffect(() => {
-    // [Frontend-10-'룩북 대체 콘텐츠'] 체크인이나 AI 응답이 없어도 매장 상품으로 페이지를 구성한다.
+    // [Frontend-11-'빈 룩북 복구'] 저장값이나 AI 응답에 상품이 없으면 매장 카탈로그로 페이지를 복구한다.
     if (lookbook) return undefined;
     const timer = window.setTimeout(async () => {
       try {
         if (checkin?.checkin_id) {
           try {
             const response = await createLookbook(checkin.checkin_id);
-            saveLookbook(checkin.checkin_id, response);
-            setLookbook(response);
-            return;
+            if (Array.isArray(response?.looks) && response.looks.length > 0) {
+              saveLookbook(checkin.checkin_id, response);
+              setLookbook(response);
+              return;
+            }
+            setNoticeMessage('생성된 맞춤 룩북에 상품이 없어 현재 매장의 추천 상품을 보여드립니다.');
           } catch {
             setNoticeMessage('맞춤 룩북을 불러오지 못해 현재 매장의 추천 상품을 보여드립니다.');
           }
@@ -36,17 +39,21 @@ export default function LookbookPage() {
         }
 
         const catalog = await fetchProducts();
+        const catalogLooks = (Array.isArray(catalog?.items) ? catalog.items : []).slice(0, 6).map((product) => ({
+          product_id: product.product_id,
+          product: product.name,
+          styling: product.tags?.slice(0, 2).join(' · ') || product.category,
+          image_url: product.image_url,
+          price: product.price,
+          in_stock: product.inventory?.in_stock ?? false,
+        }));
+        if (catalogLooks.length === 0) {
+          throw new Error('현재 표시할 수 있는 룩북 상품이 없습니다.');
+        }
         setLookbook({
           title: '매장 추천 룩북',
           intro: '현재 매장에서 바로 만나볼 수 있는 상품입니다.',
-          looks: catalog.items.slice(0, 6).map((product) => ({
-            product_id: product.product_id,
-            product: product.name,
-            styling: product.tags.slice(0, 2).join(' · ') || product.category,
-            image_url: product.image_url,
-            price: product.price,
-            in_stock: product.inventory?.in_stock ?? false,
-          })),
+          looks: catalogLooks,
         });
       } catch (error) {
         setErrorMessage(error.message || '룩북을 불러오지 못했습니다.');
@@ -81,6 +88,12 @@ export default function LookbookPage() {
             <section className="lookbook-empty" role="status">
               <p className="lookbook-state lookbook-state--error">{errorMessage}</p>
               <button type="button" className="lookbook-empty__button" onClick={() => navigate('/main')}>홈으로 돌아가기</button>
+            </section>
+          )}
+          {!isLoading && !errorMessage && looks.length === 0 && (
+            <section className="lookbook-empty" role="status">
+              <p className="lookbook-state">현재 표시할 수 있는 룩북 상품이 없습니다.</p>
+              <button type="button" className="lookbook-empty__button" onClick={() => navigate('/all-recommend')}>전체 추천 상품 보기</button>
             </section>
           )}
           <section className="lookbook-grid">

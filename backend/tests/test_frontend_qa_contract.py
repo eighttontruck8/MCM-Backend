@@ -60,6 +60,10 @@ def test_catalog_fallback_and_product_image_placeholder_are_connected() -> None:
     assert "fetchProducts" in lookbook
     assert "매장 추천 룩북" in lookbook
     assert "Array.isArray(stored.data.looks)" in lookbook_session
+    assert "stored.data.looks.length === 0" in lookbook_session
+    assert "response.looks.length > 0" in lookbook
+    assert "catalogLooks.length === 0" in lookbook
+    assert "전체 추천 상품 보기" in lookbook
     assert "IMAGE<br />COMING SOON" in product_image
 
 
