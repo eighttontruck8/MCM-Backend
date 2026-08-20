@@ -45,7 +45,7 @@ export default function VisitInfoPage() {
 
     setIsSubmitting(true);
     setErrorMessage('');
-    const visitPurpose = { code: selectedPurpose, note: note.trim() || null };
+    const visitPurpose = { code: selectedPurpose || 'OTHER', note: note.trim() || null };
     try {
       const response = await createServiceRequest(checkin.checkin_id, CONSENT, visitPurpose);
       saveCheckin({ ...checkin, ...response, visit_purpose: visitPurpose });
