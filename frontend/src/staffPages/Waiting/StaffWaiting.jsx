@@ -9,16 +9,8 @@ import {
   updateStaffVisitStatus,
 } from '../../api/client';
 import { saveStaffActiveVisit } from '../../utils/staffSession';
+import { createMockTasteReport } from '../../utils/staffTasteReport';
 import './StaffWaiting.css';
-
-const PURPOSE_LABELS = {
-  GIFT: '선물 구매',
-  SEASON_UPDATE: '시즌 코디 업데이트',
-  SPECIAL_EVENT: '특별 행사 준비',
-  BUSINESS_TRIP: '출장 준비',
-  FREE_SHOPPING: '자유 쇼핑',
-  OTHER: '기타',
-};
 
 // [Frontend-03-'직원 대기열 및 실시간 배정 연동']
 export default function StaffWaiting() {
@@ -98,8 +90,9 @@ export default function StaffWaiting() {
       const assignment = await claimStaffVisit(visit.checkin_id);
       const profile = await fetchStaffCustomer(visit.customer_id);
       const serving = await updateStaffVisitStatus(visit.checkin_id, 'SERVING');
-      saveStaffActiveVisit({ visit, profile, assignment: { ...assignment, ...serving } });
-      navigate('/staff');
+      const tasteReport = createMockTasteReport(profile, visit);
+      saveStaffActiveVisit({ visit, profile, tasteReport, assignment: { ...assignment, ...serving } });
+      navigate('/staff/recommend');
     } catch (error) {
       setErrorMessage(error.message);
       await syncQueue();
@@ -128,29 +121,11 @@ export default function StaffWaiting() {
             ) : visits.length ? (
               <div className="waiting-queue-list">
                 {visits.map((visit) => (
-                  <article className="waiting-alert-card" key={visit.checkin_id}>
-                    <div className="waiting-alert-body">
-                      <div className="waiting-customer-row">
-                        <div className="waiting-avatar">{visit.masked_name.charAt(0)}</div>
-                        <div className="waiting-customer-info">
-                          <p className="waiting-customer-name">{visit.masked_name} 고객</p>
-                          <p className="waiting-customer-sub">{visit.membership} 회원</p>
-                        </div>
-                      </div>
-                      <div className="waiting-detail-grid">
-                        <div className="waiting-detail-box">
-                          <span className="waiting-detail-label">방문 목적</span>
-                          <div className="waiting-detail-value">{PURPOSE_LABELS[visit.visit_purpose] ?? visit.visit_purpose}</div>
-                        </div>
-                        <div className="waiting-detail-box">
-                          <span className="waiting-detail-label">대기 시작</span>
-                          <div className="waiting-detail-value">{new Date(visit.waiting_since).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</div>
-                        </div>
-                      </div>
-                      <button type="button" disabled={Boolean(claimingId)} className="waiting-cta" onClick={() => handleClaim(visit)}>
-                        {claimingId === visit.checkin_id ? '배정 처리 중...' : '고객 응대 시작하기'}
-                      </button>
-                    </div>
+                  <article className="waiting-queue-row" key={visit.checkin_id}>
+                    <p><strong>{visit.masked_name}</strong> 고객님</p>
+                    <button type="button" disabled={Boolean(claimingId)} className="waiting-cta" onClick={() => handleClaim(visit)}>
+                      {claimingId === visit.checkin_id ? '처리 중...' : '응대'}
+                    </button>
                   </article>
                 ))}
               </div>

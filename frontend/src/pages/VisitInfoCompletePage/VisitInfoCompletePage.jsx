@@ -18,7 +18,7 @@ export default function VisitInfoCompletePage() {
   const navigate = useNavigate();
   const [checkin] = useState(() => getCheckin());
   const checkinId = checkin?.checkin_id;
-  const waitMinutes = checkin?.estimated_wait_minutes ?? 3;
+  const waitMinutes = checkin?.estimated_wait_minutes ?? 1;
   const purpose = PURPOSE_LABELS[checkin?.visit_purpose?.code] ?? '방문 목적';
   const [connectionState, setConnectionState] = useState('연결 중');
 
@@ -91,15 +91,14 @@ export default function VisitInfoCompletePage() {
             <p className="visit-info-complete-page__eyebrow">Staff Assistance</p>
             <div className="visit-info-complete-page__icon" aria-hidden="true">✓</div>
             <div className="visit-info-complete-page__title">
-              <p>직원 응대 요청이</p>
-              <p>접수되었습니다</p>
+              <p>웨이팅을 기다리고 있습니다...</p>
             </div>
             <p className="visit-info-complete-page__description">
-              담당 직원이 요청을 확인하고 있습니다.<br />배정되면 자동으로 담당 직원 화면으로 이동합니다.
+              담당 직원이 요청을 확인하고 있습니다.<br />응대가 시작되면 자동으로 안내해 드립니다.
             </p>
             <div className="visit-info-complete-page__status-card">
-              <div><span>현재 상태</span><strong>직원 배정 대기</strong></div>
-              <div><span>예상 대기 시간</span><strong>약 {waitMinutes}분</strong></div>
+              <div><span>현재 상태</span><strong>웨이팅 중</strong></div>
+              <div><span>대기시간</span><strong>약 {waitMinutes}분</strong></div>
               <div><span>방문 목적</span><strong>{purpose}</strong></div>
               <div><span>알림 상태</span><strong>{connectionState}</strong></div>
             </div>

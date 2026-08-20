@@ -8,3 +8,11 @@
 .store-selection-page__distance { position: absolute; top: 22px; right: 20px; color: #a7835b; }
 .store-selection-page__list button:disabled { cursor: wait; opacity: 0.6; }
 .store-selection-page__error { color: #b42318; font-size: 11px; }
+.store-selection-page__modal-backdrop { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 20px; background: rgba(10, 10, 10, 0.48); box-sizing: border-box; }
+.store-selection-page__modal { width: min(100%, 340px); padding: 28px 24px 22px; background: #fff; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2); box-sizing: border-box; }
+.store-selection-page__modal h2 { margin: 0; color: #0a0a0a; font-size: 19px; font-weight: 600; line-height: 1.45; word-break: keep-all; }
+.store-selection-page__modal p { margin: 14px 0 24px; color: #716b65; font-size: 11px; line-height: 1.65; word-break: keep-all; }
+.store-selection-page__modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.store-selection-page__modal-actions button { min-height: 44px; border: 1px solid #ded9d3; background: #fff; color: #49443f; cursor: pointer; }
+.store-selection-page__modal-actions .store-selection-page__modal-confirm { border-color: #0a0a0a; background: #0a0a0a; color: #fff; }
+.store-selection-page__modal-actions button:disabled { cursor: wait; opacity: 0.6; }

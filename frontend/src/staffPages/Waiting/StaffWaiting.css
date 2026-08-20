@@ -113,6 +113,30 @@
   gap: 14px;
 }
 
+.waiting-queue-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid #e5dfd6;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.waiting-queue-row p {
+  margin: 0;
+  color: #1d1d1d;
+  font-size: 16px;
+}
+
+.waiting-queue-row .waiting-cta {
+  width: auto;
+  min-width: 82px;
+  margin: 0;
+}
+
 .waiting-error {
   max-width: 430px;
   margin: 0 0 12px;

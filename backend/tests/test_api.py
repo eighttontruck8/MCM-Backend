@@ -421,6 +421,7 @@ def test_staff_assisted_flow_records_consent_and_purpose() -> None:
         )
         assert response.status_code == 202
         assert response.json()["status"] == "WAITING_FOR_STAFF"
+        assert response.json()["estimated_wait_minutes"] == 1
 
         saved = client.get(f"/api/v1/check-ins/{checkin_id}", headers=auth_headers)
         assert saved.json()["visit_purpose_code"] == "BUSINESS_TRIP"

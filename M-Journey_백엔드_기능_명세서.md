@@ -395,7 +395,7 @@ AI의 현재 `stock: boolean`은 데모에 쓸 수 있지만, 백엔드 DB에서
   "checkin_id": "2fb63ed2-1f0f-4ddd-bcc9-e8daf8e06b63",
   "status": "WAITING_FOR_STAFF",
   "ai_guide_status": "GENERATING",
-  "estimated_wait_minutes": 3
+  "estimated_wait_minutes": 1
 }
 ```
 

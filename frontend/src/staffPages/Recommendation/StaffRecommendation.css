@@ -269,6 +269,17 @@
   color: #2f2f2f;
 }
 
+.staff-recommend-summary {
+  margin: 18px 20px 6px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  color: #44403c;
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
 .staff-recommend-panel-close {
   position: absolute;
   right: 18px;

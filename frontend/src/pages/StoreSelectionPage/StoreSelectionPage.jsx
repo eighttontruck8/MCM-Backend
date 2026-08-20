@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createOrResumeStoreCheckin, fetchStores } from '../../api/client';
+import {
+  createOrResumeStoreCheckin,
+  createServiceRequest,
+  fetchStores,
+  setShoppingMode,
+} from '../../api/client';
 import { saveCheckin } from '../../utils/checkinSession';
 import { getCheckinContinuationPath } from '../../utils/checkinNavigation';
+import { moveCheckinToStaffQueue } from '../../utils/staffCheckinFlow';
 import './StoreSelectionPage.css';
 
 function distanceKm(position, store) {
@@ -26,6 +32,7 @@ export default function StoreSelectionPage() {
     () => (navigator.geolocation ? '현재 위치를 확인하고 있습니다.' : '위치 기능을 사용할 수 없어 기본 순서로 안내합니다.'),
   );
   const [pendingStoreId, setPendingStoreId] = useState(null);
+  const [selectedStore, setSelectedStore] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -45,13 +52,16 @@ export default function StoreSelectionPage() {
     .map((store) => ({ ...store, distance: position ? distanceKm(position, store) : null }))
     .sort((a, b) => (a.distance ?? Number.POSITIVE_INFINITY) - (b.distance ?? Number.POSITIVE_INFINITY)), [stores, position]);
 
-  const handleCheckin = async (storeId) => {
+  const handleCheckin = async () => {
+    const storeId = selectedStore?.store_id;
+    if (!storeId) return;
     setPendingStoreId(storeId);
     setErrorMessage('');
     try {
-      const checkin = await createOrResumeStoreCheckin(storeId);
+      const createdCheckin = await createOrResumeStoreCheckin(storeId);
+      const checkin = await moveCheckinToStaffQueue(createdCheckin, { setShoppingMode, createServiceRequest });
       saveCheckin(checkin);
-      navigate(getCheckinContinuationPath(checkin));
+      navigate(getCheckinContinuationPath(checkin), { replace: true });
     } catch (error) {
       setErrorMessage(error.message);
     } finally {
@@ -68,7 +78,7 @@ export default function StoreSelectionPage() {
       </header>
       <section className="store-selection-page__list" aria-label="매장 목록">
         {sortedStores.map((store) => (
-          <button key={store.store_id} type="button" disabled={Boolean(pendingStoreId)} onClick={() => handleCheckin(store.store_id)}>
+          <button key={store.store_id} type="button" disabled={Boolean(pendingStoreId)} onClick={() => setSelectedStore(store)}>
             <span className="store-selection-page__store-name">{store.name}</span>
             <span className="store-selection-page__address">{store.address}</span>
             <span className="store-selection-page__distance">{store.distance == null ? '매장 선택' : `${store.distance.toFixed(1)} km`}</span>
@@ -76,6 +86,20 @@ export default function StoreSelectionPage() {
         ))}
       </section>
       {errorMessage && <p className="store-selection-page__error" role="alert">{errorMessage}</p>}
+      {selectedStore && (
+        <div className="store-selection-page__modal-backdrop">
+          <section className="store-selection-page__modal" role="dialog" aria-modal="true" aria-labelledby="store-checkin-confirm-title">
+            <h2 id="store-checkin-confirm-title">{selectedStore.name} 매장에 체크인 하시겠습니까?</h2>
+            <p>예를 누르면 직원 응대를 위해 취향·관심 상품·구매 이력을 담당 직원에게 공유합니다.</p>
+            <div className="store-selection-page__modal-actions">
+              <button type="button" disabled={Boolean(pendingStoreId)} onClick={() => setSelectedStore(null)}>아니오</button>
+              <button type="button" className="store-selection-page__modal-confirm" disabled={Boolean(pendingStoreId)} onClick={handleCheckin}>
+                {pendingStoreId ? '체크인 중...' : '예'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

@@ -268,7 +268,7 @@ def create_service_request(
         checkin_id=checkin.id,
         status=checkin.status,
         ai_guide_status="NOT_STARTED",
-        estimated_wait_minutes=3,
+        estimated_wait_minutes=1,
     )
 
 
