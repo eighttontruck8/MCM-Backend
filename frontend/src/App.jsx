@@ -29,6 +29,10 @@ import LookDetailPage from './pages/LookDetailPage/LookDetailPage';
 import WishlistPage from './pages/WishlistPage/WishlistPage';
 import MyPage from './pages/MyPage/MyPage';
 
+// 0. 매장 키오스크 & QR 랜딩
+import KioskPage from './pages/KioskPage/KioskPage';
+import WelcomePage from './pages/WelcomePage/WelcomePage';
+
 // ==========================================
 // [새로 추가된 부분] 직원용 화면 컴포넌트 불러오기
 // ==========================================
@@ -59,6 +63,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes key={reviveKey}>
+        {/* 0. 매장 키오스크 & QR 랜딩 */}
+        <Route path="/kiosk" element={<KioskPage />} />
+        <Route path="/welcome" element={<WelcomePage />} />
+
         {/* 1. 로그인 & 회원가입 */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/signup" element={<SignupPage />} />
