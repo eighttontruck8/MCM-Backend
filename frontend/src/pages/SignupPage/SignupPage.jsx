@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createOrResumeCheckin, signupCustomer, signupStaff } from '../../api/client';
 import { clearEntryTag, getEntryTag, saveCheckin } from '../../utils/checkinSession';
+import brandImage from '../../assets/brand.png';
 import './SignupPage.css';
 
 export default function SignupPage() {
@@ -60,12 +61,9 @@ export default function SignupPage() {
         <div className="signup-page__app" data-node-id="13:1478" data-name="App">
           <section className="signup-page__hero" data-node-id="13:1479" data-name="AuthScreen">
             <div className="signup-page__hero-backdrop" data-node-id="13:1480" data-name="Container">
-              <div className="signup-page__hero-image" data-node-id="13:1481" data-name="ImgPlaceholder">
-                <div className="signup-page__hero-text" data-node-id="13:1482" data-name="Text">
-                  <p className="signup-page__hero-image-label" data-node-id="13:1483">
-                    브랜드 이미지
-                  </p>
-                </div>
+              {/* [Frontend-Auth-'로그인·회원가입 브랜드 이미지 통일'] */}
+              <div className="signup-page__hero-image" data-node-id="13:1481">
+                <img src={brandImage} alt="MCM Brand" className="signup-page__hero-img" />
               </div>
               <div className="signup-page__hero-gradient" data-node-id="13:1485" data-name="Container" />
               <div className="signup-page__hero-copy" data-node-id="13:1486" data-name="Container">
